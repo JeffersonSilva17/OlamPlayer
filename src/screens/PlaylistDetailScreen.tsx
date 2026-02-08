@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, Pressable, FlatList, StyleSheet } from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import { View, Text, Pressable, FlatList, StyleSheet, TextInput } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { PlaylistsStackParamList } from "../navigation/types";
 import { usePlaylistStore } from "../stores/playlistStore";
@@ -7,6 +7,8 @@ import { MediaRepositorySqlite } from "../data/repositories/MediaRepositorySqlit
 import type { MediaItem } from "../models/media";
 import { useNavigation } from "@react-navigation/native";
 import { theme } from "../theme/theme";
+import { ScreenBackdrop } from "../components/ScreenBackdrop";
+import { icons } from "../theme/icons";
 
 type Props = NativeStackScreenProps<PlaylistsStackParamList, "PlaylistDetail">;
 const mediaRepository = new MediaRepositorySqlite();
@@ -24,6 +26,7 @@ export function PlaylistDetailScreen({ route }: Props) {
   const [libraryItems, setLibraryItems] = useState<MediaItem[]>([]);
   const [activeTab, setActiveTab] = useState<"items" | "add">("items");
   const [orderedItems, setOrderedItems] = useState<MediaItem[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     loadPlaylistItems(playlistId);
@@ -39,12 +42,20 @@ export function PlaylistDetailScreen({ route }: Props) {
     setOrderedItems(items);
   }, [items]);
 
+  const filteredLibraryItems = useMemo(() => {
+    if (!searchQuery.trim()) return libraryItems;
+    const normalizedQuery = normalizeSearchText(searchQuery);
+    return libraryItems.filter((item) =>
+      normalizeSearchText(item.displayName).includes(normalizedQuery),
+    );
+  }, [libraryItems, searchQuery]);
+
   const playAll = async () => {
     if (orderedItems.length === 0) return;
     navigation
       .getParent()
       ?.navigate(
-        "Biblioteca" as never,
+        (mediaType === "video" ? "Video" : "Audio") as never,
         {
           screen: "Player",
           params: {
@@ -70,10 +81,35 @@ export function PlaylistDetailScreen({ route }: Props) {
 
   return (
     <View style={styles.container}>
+      <ScreenBackdrop />
       <Text style={styles.title}>{playlistName}</Text>
-      <Pressable style={styles.button} onPress={playAll}>
-        <Text style={styles.buttonText}>Tocar playlist</Text>
-      </Pressable>
+      <View style={styles.playRow}>
+        <Pressable style={styles.button} onPress={playAll}>
+          <Text style={styles.buttonText}>Tocar playlist</Text>
+        </Pressable>
+        <Pressable
+          style={styles.iconButton}
+          onPress={() => {
+            if (orderedItems.length === 0) return;
+            const shuffled = [...orderedItems].sort(() => Math.random() - 0.5);
+            navigation
+              .getParent()
+              ?.navigate(
+                (mediaType === "video" ? "Video" : "Audio") as never,
+                {
+                  screen: "Player",
+                  params: {
+                    item: shuffled[0],
+                    queue: shuffled,
+                    queueLabel: `${playlistName} (Aleatorio)`,
+                  },
+                } as never,
+              );
+          }}
+        >
+          <Text style={styles.iconText}>{icons.shuffle}</Text>
+        </Pressable>
+      </View>
       <View style={styles.tabs}>
         <Pressable
           style={[styles.tab, activeTab === "items" && styles.tabActive]}
@@ -120,18 +156,30 @@ export function PlaylistDetailScreen({ route }: Props) {
           )}
         />
       ) : (
-        <FlatList
-          data={libraryItems}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <View style={styles.row}>
-              <Text style={styles.itemName}>{item.displayName}</Text>
-              <Pressable onPress={() => addToPlaylist(playlistId, item.id)}>
-                <Text style={styles.add}>Adicionar</Text>
-              </Pressable>
-            </View>
-          )}
-        />
+        <View style={styles.addContainer}>
+          <View style={styles.searchBar}>
+            <Text style={styles.searchIcon}>{icons.search}</Text>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Buscar por nome"
+              placeholderTextColor={theme.colors.textMuted}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+          </View>
+          <FlatList
+            data={filteredLibraryItems}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <View style={styles.row}>
+                <Text style={styles.itemName}>{item.displayName}</Text>
+                <Pressable onPress={() => addToPlaylist(playlistId, item.id)}>
+                  <Text style={styles.add}>Adicionar</Text>
+                </Pressable>
+              </View>
+            )}
+          />
+        </View>
       )}
     </View>
   );
@@ -171,6 +219,7 @@ const styles = StyleSheet.create({
   tabText: {
     color: theme.colors.text,
     fontWeight: "600",
+    fontFamily: theme.fonts.body,
   },
   tabTextActive: {
     color: theme.colors.surface,
@@ -184,6 +233,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: theme.colors.surface,
     fontWeight: "600",
+    fontFamily: theme.fonts.body,
   },
   row: {
     flexDirection: "row",
@@ -196,6 +246,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 8,
     color: theme.colors.text,
+    fontFamily: theme.fonts.body,
   },
   rowActions: {
     flexDirection: "row",
@@ -213,12 +264,65 @@ const styles = StyleSheet.create({
   orderText: {
     color: theme.colors.brand,
     fontWeight: "700",
+    fontFamily: theme.fonts.body,
   },
   remove: {
     color: theme.colors.danger,
+    fontFamily: theme.fonts.body,
   },
   add: {
     color: theme.colors.brand,
+    fontFamily: theme.fonts.body,
+  },
+  playRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+  },
+  iconButton: {
+    backgroundColor: theme.colors.brand,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  iconText: {
+    color: theme.colors.surface,
+    fontSize: 16,
+    fontFamily: theme.fonts.heading,
+  },
+  addContainer: {
+    flex: 1,
+  },
+  searchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.md,
+    paddingHorizontal: theme.spacing.sm,
+    backgroundColor: theme.colors.surface,
+    marginBottom: theme.spacing.sm,
+  },
+  searchIcon: {
+    color: theme.colors.textMuted,
+    fontSize: 16,
+    marginRight: theme.spacing.xs,
+    fontFamily: theme.fonts.body,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 8,
+    color: theme.colors.text,
+    fontFamily: theme.fonts.body,
   },
 });
+
+function normalizeSearchText(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
 

@@ -37,7 +37,9 @@ export function MediaCard({
       onPress={() => {
         if (selectionMode) {
           onToggleSelect?.(item);
+          return;
         }
+        onPlay(item);
       }}
       onLongPress={() => onLongPressSelect?.(item)}
     >
@@ -55,27 +57,6 @@ export function MediaCard({
         <Text style={styles.subtitle}>
           {item.mediaType.toUpperCase()} - {item.isAvailable ? "Disponivel" : "Indisponivel"}
         </Text>
-      </View>
-      <View style={styles.actions}>
-        <Pressable style={styles.buttonPrimary} onPress={() => onPlay(item)}>
-          <Text style={styles.buttonText}>Tocar</Text>
-        </Pressable>
-        <Pressable style={styles.buttonAccent} onPress={() => onShare(item)}>
-          <Text style={styles.buttonText}>Compartilhar</Text>
-        </Pressable>
-        {onAddToPlaylist ? (
-          <Pressable style={styles.buttonOutline} onPress={() => onAddToPlaylist(item)}>
-            <Text style={styles.buttonTextOutline}>Playlist</Text>
-          </Pressable>
-        ) : null}
-        <Pressable style={styles.buttonDanger} onPress={() => onRemove(item)}>
-          <Text style={styles.buttonText}>Remover</Text>
-        </Pressable>
-        {!item.isAvailable && onReimport ? (
-          <Pressable style={styles.buttonOutline} onPress={() => onReimport(item)}>
-            <Text style={styles.buttonTextOutline}>Reimportar</Text>
-          </Pressable>
-        ) : null}
       </View>
     </Pressable>
   );
@@ -108,46 +89,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: theme.colors.textMuted,
     marginTop: 4,
-  },
-  actions: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: theme.spacing.sm,
-  },
-  buttonPrimary: {
-    paddingVertical: 5,
-    paddingHorizontal: 8,
-    borderRadius: theme.radius.md,
-    backgroundColor: theme.colors.brand,
-  },
-  buttonAccent: {
-    paddingVertical: 5,
-    paddingHorizontal: 8,
-    borderRadius: theme.radius.md,
-    backgroundColor: theme.colors.accent,
-  },
-  buttonOutline: {
-    paddingVertical: 5,
-    paddingHorizontal: 8,
-    borderRadius: theme.radius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.brand,
-    backgroundColor: theme.colors.surface,
-  },
-  buttonDanger: {
-    paddingVertical: 5,
-    paddingHorizontal: 8,
-    borderRadius: theme.radius.md,
-    backgroundColor: theme.colors.danger,
-  },
-  buttonText: {
-    color: theme.colors.surface,
-    fontSize: 11,
-  },
-  buttonTextOutline: {
-    color: theme.colors.brand,
-    fontSize: 11,
-    fontWeight: "600",
+    fontFamily: theme.fonts.body,
   },
   titleHighlight: {
     backgroundColor: theme.colors.highlight,

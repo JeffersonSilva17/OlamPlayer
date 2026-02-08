@@ -1,7 +1,13 @@
-import type { MediaItem } from "../models/media";
+import type { MediaItem, MediaType } from "../models/media";
 
 export type LibraryStackParamList = {
-  Library: undefined;
+  Library:
+    | undefined
+    | {
+        mediaType?: MediaType;
+        hideTabs?: boolean;
+        showAddButton?: boolean;
+      };
   Player: { item: MediaItem; queue?: MediaItem[]; queueLabel?: string };
 };
 
@@ -11,8 +17,8 @@ export type PlaylistsStackParamList = {
 };
 
 export type RootTabParamList = {
-  Biblioteca: undefined;
-  Adicionar: undefined;
+  Video: undefined;
+  Audio: undefined;
   Playlists: undefined;
   Configuracoes: undefined;
 };

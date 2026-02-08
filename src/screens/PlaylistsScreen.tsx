@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, TextInput, Pressable, FlatList, StyleSheet } from "react-native";
+import { View, Text, TextInput, Pressable, FlatList, StyleSheet, Alert } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { PlaylistsStackParamList } from "../navigation/types";
@@ -7,6 +7,9 @@ import { usePlaylistStore } from "../stores/playlistStore";
 import type { MediaType } from "../models/media";
 import { PlaylistRepositorySqlite } from "../data/repositories/PlaylistRepositorySqlite";
 import { theme } from "../theme/theme";
+import { ScreenBackdrop } from "../components/ScreenBackdrop";
+import { icons } from "../theme/icons";
+import { StackedNoteIcon } from "../components/StackedNoteIcon";
 
 type Navigation = NativeStackNavigationProp<PlaylistsStackParamList, "Playlists">;
 
@@ -22,24 +25,52 @@ export function PlaylistsScreen() {
     loadPlaylists();
   }, [loadPlaylists]);
 
+  const playPlaylist = async (playlistId: string, playlistName: string, shuffle = false) => {
+    const items = await repository.listPlaylistItems(playlistId);
+    if (items.length === 0) return;
+    const queue = shuffle
+      ? [...items].sort(() => Math.random() - 0.5)
+      : items;
+    const targetTab = items[0].mediaType === "video" ? "Video" : "Audio";
+    (navigation as any).navigate(targetTab, {
+      screen: "Player",
+      params: {
+        item: queue[0],
+        queue,
+        queueLabel: shuffle ? `${playlistName} (Aleatorio)` : playlistName,
+      },
+    });
+  };
+
+  const handleCreate = async () => {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      Alert.alert("Nome da playlist", "Digite um nome para criar a playlist.");
+      return;
+    }
+    await createPlaylist(trimmed, mediaType);
+    setName("");
+  };
+
   return (
     <View style={styles.container}>
+      <ScreenBackdrop />
       <Text style={styles.title}>Playlists</Text>
       <View style={styles.tabs}>
         <Pressable
           style={[styles.tab, mediaType === "audio" && styles.tabActive]}
           onPress={() => setMediaType("audio")}
         >
-          <Text style={[styles.tabText, mediaType === "audio" && styles.tabTextActive]}>
-            Audio
+          <Text style={[styles.tabIcon, mediaType === "audio" && styles.tabIconActive]}>
+            {icons.audio}
           </Text>
         </Pressable>
         <Pressable
           style={[styles.tab, mediaType === "video" && styles.tabActive]}
           onPress={() => setMediaType("video")}
         >
-          <Text style={[styles.tabText, mediaType === "video" && styles.tabTextActive]}>
-            Video
+          <Text style={[styles.tabIcon, mediaType === "video" && styles.tabIconActive]}>
+            {icons.video}
           </Text>
         </Pressable>
       </View>
@@ -50,23 +81,23 @@ export function PlaylistsScreen() {
           placeholderTextColor={theme.colors.textMuted}
           value={name}
           onChangeText={setName}
+          onSubmitEditing={handleCreate}
         />
         <Pressable
-          style={styles.smallButton}
-          onPress={() => {
-            if (!name.trim()) return;
-            createPlaylist(name, mediaType);
-            setName("");
-          }}
+          style={styles.createButton}
+          onPress={handleCreate}
         >
-          <Text style={styles.smallButtonText}>Criar</Text>
+          <View style={styles.createIconWrap}>
+            <StackedNoteIcon color={theme.colors.accent} size={12} />
+            <Text style={styles.createPlus}>+</Text>
+          </View>
         </Pressable>
       </View>
       <FlatList
         data={playlists.filter((p) => p.mediaType === mediaType)}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View style={styles.row}>
+          <View style={styles.rowCard}>
             <Pressable
               onPress={() =>
                 navigation.navigate("PlaylistDetail", {
@@ -79,20 +110,20 @@ export function PlaylistsScreen() {
               <Text style={styles.playlistName}>{item.name}</Text>
             </Pressable>
             <View style={styles.actions}>
-                <Pressable
-                  onPress={async () => {
-                    const items = await repository.listPlaylistItems(item.id);
-                    if (items.length === 0) return;
-                    (navigation as any).navigate("Biblioteca", {
-                      screen: "Player",
-                      params: { item: items[0], queue: items, queueLabel: item.name },
-                    });
-                  }}
-                >
-                <Text style={styles.play}>Reproduzir</Text>
+              <Pressable
+                style={styles.iconButton}
+                onPress={() => playPlaylist(item.id, item.name, true)}
+              >
+                <Text style={[styles.iconText, styles.shuffleIcon]}>{icons.shuffle}</Text>
               </Pressable>
-              <Pressable onPress={() => deletePlaylist(item.id)}>
-                <Text style={styles.remove}>Excluir</Text>
+              <Pressable
+                style={styles.iconButton}
+                onPress={() => playPlaylist(item.id, item.name, false)}
+              >
+                <Text style={styles.iconText}>{icons.play}</Text>
+              </Pressable>
+              <Pressable style={styles.iconButtonDanger} onPress={() => deletePlaylist(item.id)}>
+                <Text style={styles.iconText}>{icons.trash}</Text>
               </Pressable>
             </View>
           </View>
@@ -132,11 +163,13 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.brand,
     borderColor: theme.colors.brand,
   },
-  tabText: {
-    color: theme.colors.text,
-    fontWeight: "600",
+  tabIcon: {
+    color: theme.colors.textMuted,
+    fontWeight: "700",
+    fontFamily: theme.fonts.body,
+    fontSize: 16,
   },
-  tabTextActive: {
+  tabIconActive: {
     color: theme.colors.surface,
   },
   inline: {
@@ -152,39 +185,74 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     backgroundColor: theme.colors.surface,
     color: theme.colors.text,
+    fontFamily: theme.fonts.body,
   },
-  smallButton: {
-    backgroundColor: theme.colors.brand,
+  createButton: {
+    backgroundColor: theme.colors.surface,
     borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.accent,
     paddingHorizontal: 12,
     justifyContent: "center",
+    minWidth: 56,
   },
-  smallButtonText: {
-    color: theme.colors.surface,
-    fontSize: 12,
+  createIconWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
   },
-  row: {
+  createPlus: {
+    color: theme.colors.accent,
+    fontWeight: "700",
+    fontSize: 14,
+    fontFamily: theme.fonts.body,
+  },
+  rowCard: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    paddingHorizontal: theme.spacing.sm,
+    marginBottom: theme.spacing.sm,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.lg,
+    backgroundColor: theme.colors.surface,
   },
   playlistName: {
     fontSize: 16,
     color: theme.colors.text,
+    fontFamily: theme.fonts.body,
   },
   actions: {
     flexDirection: "row",
     gap: theme.spacing.sm,
     alignItems: "center",
   },
-  play: {
-    color: theme.colors.brand,
-    fontWeight: "600",
+  iconButton: {
+    backgroundColor: theme.colors.brand,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  remove: {
-    color: theme.colors.danger,
+  iconButtonDanger: {
+    backgroundColor: theme.colors.danger,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  iconText: {
+    color: theme.colors.bg,
+    fontSize: 20,
+    fontWeight: "800",
+    fontFamily: theme.fonts.heading,
+  },
+  shuffleIcon: {
+    fontSize: 22,
   },
 });

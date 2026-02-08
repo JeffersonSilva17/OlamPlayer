@@ -1,7 +1,17 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { View, Text, TextInput, Pressable, StyleSheet, Modal, FlatList } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  StyleSheet,
+  Modal,
+  FlatList,
+  Platform,
+  Alert,
+} from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { NativeStackNavigationProp, NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { LibraryStackParamList } from "../navigation/types";
 import type { MediaItem, MediaType } from "../models/media";
 import { useMediaStore } from "../stores/mediaStore";
@@ -9,12 +19,19 @@ import { usePlaylistStore } from "../stores/playlistStore";
 import { reactNativeShareAdapter } from "../infra/share/ReactNativeShareAdapter";
 import { MediaList } from "../components/MediaList";
 import { theme } from "../theme/theme";
+import { ScreenBackdrop } from "../components/ScreenBackdrop";
+import { icons } from "../theme/icons";
+import { StackedNoteIcon } from "../components/StackedNoteIcon";
 
 type Navigation = NativeStackNavigationProp<LibraryStackParamList, "Library">;
+type Props = NativeStackScreenProps<LibraryStackParamList, "Library">;
 
-export function LibraryScreen() {
+export function LibraryScreen({ route }: Props) {
   const navigation = useNavigation<Navigation>();
-  const [activeTab, setActiveTab] = useState<MediaType>("audio");
+  const forcedType = route.params?.mediaType;
+  const hideTabs = route.params?.hideTabs;
+  const showAddButton = route.params?.showAddButton;
+  const [activeTab, setActiveTab] = useState<MediaType>(forcedType ?? "audio");
   const {
     items,
     loadMedia,
@@ -24,6 +41,10 @@ export function LibraryScreen() {
     sort,
     setSort,
     reimportMedia,
+    addFiles,
+    addFolder,
+    indexing,
+    indexStatus,
   } = useMediaStore();
   const {
     playlists,
@@ -31,6 +52,7 @@ export function LibraryScreen() {
     addToPlaylist,
     addItemsToPlaylist,
     createPlaylistWithItems,
+    createPlaylist,
   } = usePlaylistStore();
   const [showPlaylistModal, setShowPlaylistModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<MediaItem | null>(null);
@@ -41,6 +63,8 @@ export function LibraryScreen() {
   const [playlistModalMode, setPlaylistModalMode] = useState<"single" | "multi">(
     "single",
   );
+  const [createMode, setCreateMode] = useState<"single" | "multi">("multi");
+  const [showAddModal, setShowAddModal] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -48,6 +72,12 @@ export function LibraryScreen() {
       loadPlaylists();
     }, [activeTab, loadMedia, loadPlaylists]),
   );
+
+  useEffect(() => {
+    if (forcedType) {
+      setActiveTab(forcedType);
+    }
+  }, [forcedType]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -77,6 +107,52 @@ export function LibraryScreen() {
     setSelectedItem(item);
     setPlaylistModalMode("single");
     setShowPlaylistModal(true);
+  };
+
+  const openPlaylistPickerForSelection = () => {
+    if (selectedItems.length === 0) return;
+    if (selectedItems.length === 1) {
+      setSelectedItem(selectedItems[0]);
+      setPlaylistModalMode("single");
+    } else {
+      setSelectedItem(null);
+      setPlaylistModalMode("multi");
+    }
+    setShowPlaylistModal(true);
+  };
+
+  const playSelection = () => {
+    if (selectedItems.length === 0) return;
+    navigation.navigate("Player", {
+      item: selectedItems[0],
+      queue: selectedItems,
+      queueLabel: "Selecionadas",
+    });
+    clearSelection();
+  };
+
+  const shareSelection = async () => {
+    if (selectedItems.length === 0) return;
+    if (selectedItems.length > 1) {
+      Alert.alert("Compartilhar", "Selecione apenas 1 faixa para compartilhar.");
+      return;
+    }
+    const item = selectedItems[0];
+    try {
+      await reactNativeShareAdapter.shareFile({
+        uri: item.uri,
+        mimeType: item.mimeType,
+        title: item.displayName,
+      });
+    } catch (error) {
+      console.warn("Falha ao compartilhar", error);
+    }
+  };
+
+  const deleteSelection = () => {
+    if (selectedItems.length === 0) return;
+    selectedItems.forEach((entry) => removeMedia(entry.id, entry.mediaType));
+    clearSelection();
   };
   const toggleSelection = (item: MediaItem) => {
     setSelectedIds((prev) => {
@@ -117,34 +193,51 @@ export function LibraryScreen() {
     return playlists.filter((p) => p.mediaType === selectedItem.mediaType);
   }, [playlists, selectedItem, playlistModalMode, activeTab]);
 
+  const createTargets =
+    createMode === "single" && selectedItem ? [selectedItem.id] : selectedIds;
+  const createMediaType =
+    createMode === "single" && selectedItem ? selectedItem.mediaType : activeTab;
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Biblioteca</Text>
-      <View style={styles.tabs}>
-        <Pressable
-          style={[styles.tab, activeTab === "audio" && styles.tabActive]}
-          onPress={() => setActiveTab("audio")}
-        >
-          <Text style={[styles.tabText, activeTab === "audio" && styles.tabTextActive]}>
-            Audios
-          </Text>
-        </Pressable>
-        <Pressable
-          style={[styles.tab, activeTab === "video" && styles.tabActive]}
-          onPress={() => setActiveTab("video")}
-        >
-          <Text style={[styles.tabText, activeTab === "video" && styles.tabTextActive]}>
-            Videos
-          </Text>
-        </Pressable>
+      <ScreenBackdrop />
+      {!hideTabs ? (
+        <View style={styles.tabs}>
+          <Pressable
+            style={[styles.tab, activeTab === "audio" && styles.tabActive]}
+            onPress={() => setActiveTab("audio")}
+          >
+            <Text style={[styles.tabText, activeTab === "audio" && styles.tabTextActive]}>
+              Audios
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[styles.tab, activeTab === "video" && styles.tabActive]}
+            onPress={() => setActiveTab("video")}
+          >
+            <Text style={[styles.tabText, activeTab === "video" && styles.tabTextActive]}>
+              Videos
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
+      <View style={styles.searchHeader}>
+        <View style={styles.searchBar}>
+          <Text style={styles.searchIcon}>{icons.search}</Text>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Buscar por nome"
+            placeholderTextColor={theme.colors.textMuted}
+            value={query}
+            onChangeText={setQuery}
+          />
+        </View>
+        {showAddButton ? (
+          <Pressable style={styles.addButton} onPress={() => setShowAddModal(true)}>
+            <Text style={styles.addButtonText}>Add</Text>
+          </Pressable>
+        ) : null}
       </View>
-      <TextInput
-        style={styles.search}
-        placeholder="Buscar por nome"
-        placeholderTextColor={theme.colors.textMuted}
-        value={query}
-        onChangeText={setQuery}
-      />
       <View style={styles.sortRow}>
         <Pressable
           style={[styles.sortButton, sort === "name" && styles.sortButtonActive]}
@@ -175,39 +268,27 @@ export function LibraryScreen() {
       </View>
       {selectionMode ? (
         <View style={styles.selectionBar}>
-          <Text style={styles.selectionText}>{selectedIds.length} selecionadas</Text>
+          <Text style={styles.selectionText}>
+            {selectedIds.length} selecionada{selectedIds.length === 1 ? "" : "(s)"}
+          </Text>
           <View style={styles.selectionActions}>
-            <Pressable
-              style={styles.selectionButton}
-              onPress={() => setShowCreateModal(true)}
-            >
-              <Text style={styles.selectionButtonText}>Criar playlist</Text>
+            <Pressable style={styles.selectionIconButton} onPress={playSelection}>
+              <Text style={styles.selectionIcon}>{icons.play}</Text>
             </Pressable>
-            <Pressable
-              style={styles.selectionButton}
-              onPress={() => {
-                setPlaylistModalMode("multi");
-                setShowPlaylistModal(true);
-              }}
-            >
-              <Text style={styles.selectionButtonText}>Adicionar a playlist</Text>
+            <Pressable style={styles.selectionIconButton} onPress={shareSelection}>
+              <Text style={styles.selectionIcon}>{icons.share}</Text>
             </Pressable>
-            <Pressable
-              style={styles.selectionButton}
-              onPress={() => {
-                if (selectedItems.length === 0) return;
-                navigation.navigate("Player", {
-                  item: selectedItems[0],
-                  queue: selectedItems,
-                  queueLabel: "Selecionadas",
-                });
-                clearSelection();
-              }}
-            >
-              <Text style={styles.selectionButtonText}>Reproduzir</Text>
+            <Pressable style={styles.selectionIconButton} onPress={openPlaylistPickerForSelection}>
+              <View style={styles.selectionPlaylist}>
+                <StackedNoteIcon color={theme.colors.bg} size={10} />
+                <Text style={styles.selectionPlus}>+</Text>
+              </View>
             </Pressable>
-            <Pressable style={styles.selectionCancel} onPress={clearSelection}>
-              <Text style={styles.selectionCancelText}>Cancelar</Text>
+            <Pressable style={styles.selectionIconDanger} onPress={deleteSelection}>
+              <Text style={styles.selectionIcon}>{icons.trash}</Text>
+            </Pressable>
+            <Pressable style={styles.selectionIconOutline} onPress={clearSelection}>
+              <Text style={styles.selectionIconDark}>X</Text>
             </Pressable>
           </View>
         </View>
@@ -263,6 +344,16 @@ export function LibraryScreen() {
               />
             )}
             <Pressable
+              style={styles.modalCreate}
+              onPress={() => {
+                setCreateMode(playlistModalMode);
+                setShowPlaylistModal(false);
+                setShowCreateModal(true);
+              }}
+            >
+              <Text style={styles.modalCreateText}>Criar nova playlist</Text>
+            </Pressable>
+            <Pressable
               style={styles.modalClose}
               onPress={() => {
                 setShowPlaylistModal(false);
@@ -288,15 +379,20 @@ export function LibraryScreen() {
             <Pressable
               style={styles.modalClose}
               onPress={async () => {
-                if (!newPlaylistName.trim() || selectedIds.length === 0) return;
-                await createPlaylistWithItems(
-                  newPlaylistName.trim(),
-                  activeTab,
-                  selectedIds,
-                );
+                const trimmed = newPlaylistName.trim();
+                if (!trimmed) {
+                  Alert.alert("Nome da playlist", "Digite um nome para criar a playlist.");
+                  return;
+                }
+                if (createTargets.length === 0) {
+                  await createPlaylist(trimmed, createMediaType);
+                } else {
+                  await createPlaylistWithItems(trimmed, createMediaType, createTargets);
+                }
                 setNewPlaylistName("");
                 setShowCreateModal(false);
                 clearSelection();
+                setSelectedItem(null);
               }}
             >
               <Text style={styles.modalCloseText}>Criar</Text>
@@ -306,9 +402,55 @@ export function LibraryScreen() {
               onPress={() => {
                 setShowCreateModal(false);
                 setNewPlaylistName("");
+                setCreateMode("multi");
               }}
             >
               <Text style={styles.modalCancelText}>Cancelar</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+      <Modal visible={showAddModal} transparent animationType="slide">
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Adicionar midia</Text>
+            <Pressable
+              style={styles.modalClose}
+              onPress={async () => {
+                const added = await addFiles(["audio", "video"]);
+                if (added > 0) {
+                  setShowAddModal(false);
+                }
+              }}
+            >
+              <Text style={styles.modalCloseText}>Adicionar arquivos</Text>
+            </Pressable>
+            {Platform.OS === "android" ? (
+              <Pressable
+                style={styles.modalCreate}
+                onPress={async () => {
+                  await addFolder();
+                  setShowAddModal(false);
+                }}
+              >
+                <Text style={styles.modalCreateText}>Adicionar pasta</Text>
+              </Pressable>
+            ) : null}
+            {indexing ? (
+              <Text style={styles.statusText}>Indexando pasta...</Text>
+            ) : null}
+            {indexStatus ? (
+              <Text style={styles.statusText}>
+                Encontrados: {indexStatus.filesFound} - Adicionados:{" "}
+                {indexStatus.filesAdded}
+                {indexStatus.filesSkipped ? ` - Ignorados: ${indexStatus.filesSkipped}` : ""}
+              </Text>
+            ) : null}
+            <Pressable
+              style={styles.modalCancel}
+              onPress={() => setShowAddModal(false)}
+            >
+              <Text style={styles.modalCancelText}>Fechar</Text>
             </Pressable>
           </View>
         </View>
@@ -322,13 +464,6 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: theme.spacing.md,
     backgroundColor: theme.colors.bg,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: "700",
-    marginBottom: theme.spacing.sm,
-    color: theme.colors.text,
-    fontFamily: theme.fonts.heading,
   },
   tabs: {
     flexDirection: "row",
@@ -350,19 +485,49 @@ const styles = StyleSheet.create({
   tabText: {
     color: theme.colors.text,
     fontWeight: "600",
+    fontFamily: theme.fonts.body,
   },
   tabTextActive: {
     color: theme.colors.surface,
   },
-  search: {
+  searchHeader: {
+    flexDirection: "row",
+    gap: theme.spacing.sm,
+    alignItems: "center",
+    marginBottom: theme.spacing.sm,
+  },
+  searchBar: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1,
     borderColor: theme.colors.border,
     borderRadius: theme.radius.md,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    marginBottom: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.sm,
     backgroundColor: theme.colors.surface,
+  },
+  searchIcon: {
+    color: theme.colors.textMuted,
+    fontSize: 16,
+    marginRight: theme.spacing.xs,
+    fontFamily: theme.fonts.body,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 8,
     color: theme.colors.text,
+    fontFamily: theme.fonts.body,
+  },
+  addButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.brand,
+  },
+  addButtonText: {
+    color: theme.colors.surface,
+    fontWeight: "700",
+    fontFamily: theme.fonts.body,
   },
   sortRow: {
     flexDirection: "row",
@@ -383,6 +548,7 @@ const styles = StyleSheet.create({
   sortButtonText: {
     color: theme.colors.brand,
     fontWeight: "600",
+    fontFamily: theme.fonts.body,
   },
   sortButtonTextActive: {
     color: theme.colors.surface,
@@ -399,34 +565,62 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginBottom: theme.spacing.sm,
     color: theme.colors.text,
+    fontFamily: theme.fonts.body,
   },
   selectionActions: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: theme.spacing.sm,
+    alignItems: "center",
   },
-  selectionButton: {
+  selectionIconButton: {
     backgroundColor: theme.colors.brand,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: theme.radius.md,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  selectionButtonText: {
-    color: theme.colors.surface,
-    fontSize: 12,
+  selectionIconDanger: {
+    backgroundColor: theme.colors.danger,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  selectionCancel: {
+  selectionIconOutline: {
     borderWidth: 1,
     borderColor: theme.colors.brand,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: theme.radius.md,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
     backgroundColor: theme.colors.surface,
   },
-  selectionCancelText: {
+  selectionIcon: {
+    color: theme.colors.bg,
+    fontSize: 20,
+    fontWeight: "800",
+    fontFamily: theme.fonts.heading,
+  },
+  selectionIconDark: {
     color: theme.colors.brand,
+    fontSize: 16,
+    fontWeight: "800",
+    fontFamily: theme.fonts.heading,
+  },
+  selectionPlaylist: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+  },
+  selectionPlus: {
+    color: theme.colors.bg,
+    fontWeight: "800",
     fontSize: 12,
-    fontWeight: "600",
+    fontFamily: theme.fonts.body,
   },
   modalBackdrop: {
     flex: 1,
@@ -445,14 +639,17 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginBottom: theme.spacing.xs,
     color: theme.colors.text,
+    fontFamily: theme.fonts.heading,
   },
   modalSubtitle: {
     color: theme.colors.textMuted,
     marginBottom: theme.spacing.sm,
+    fontFamily: theme.fonts.body,
   },
   modalEmpty: {
     color: theme.colors.textMuted,
     marginBottom: theme.spacing.sm,
+    fontFamily: theme.fonts.body,
   },
   modalRow: {
     paddingVertical: 10,
@@ -464,10 +661,12 @@ const styles = StyleSheet.create({
   modalRowText: {
     fontSize: 14,
     color: theme.colors.text,
+    fontFamily: theme.fonts.body,
   },
   modalRowAction: {
     color: theme.colors.brand,
     fontWeight: "600",
+    fontFamily: theme.fonts.body,
   },
   modalClose: {
     marginTop: theme.spacing.sm,
@@ -479,6 +678,21 @@ const styles = StyleSheet.create({
   modalCloseText: {
     color: theme.colors.surface,
     fontWeight: "600",
+    fontFamily: theme.fonts.body,
+  },
+  modalCreate: {
+    marginTop: theme.spacing.sm,
+    paddingVertical: 10,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.accent,
+    backgroundColor: theme.colors.surface,
+    alignItems: "center",
+  },
+  modalCreateText: {
+    color: theme.colors.accent,
+    fontWeight: "700",
+    fontFamily: theme.fonts.body,
   },
   modalCancel: {
     marginTop: theme.spacing.sm,
@@ -492,6 +706,12 @@ const styles = StyleSheet.create({
   modalCancelText: {
     color: theme.colors.brand,
     fontWeight: "600",
+    fontFamily: theme.fonts.body,
+  },
+  statusText: {
+    marginTop: theme.spacing.sm,
+    color: theme.colors.textMuted,
+    fontFamily: theme.fonts.body,
   },
   input: {
     borderWidth: 1,

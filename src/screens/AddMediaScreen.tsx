@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Platform, View, Text, Pressable, TextInput, StyleSheet, Alert } from "react-native";
 import { useMediaStore } from "../stores/mediaStore";
 import { theme } from "../theme/theme";
+import { ScreenBackdrop } from "../components/ScreenBackdrop";
 
 export function AddMediaScreen() {
   const {
@@ -22,6 +23,7 @@ export function AddMediaScreen() {
 
   return (
     <View style={styles.container}>
+      <ScreenBackdrop />
       <Text style={styles.title}>Adicionar midia</Text>
       <Pressable
         style={styles.button}
@@ -103,10 +105,12 @@ const styles = StyleSheet.create({
   buttonText: {
     color: theme.colors.surface,
     fontWeight: "600",
+    fontFamily: theme.fonts.body,
   },
   status: {
     color: theme.colors.textMuted,
     marginBottom: theme.spacing.xs,
+    fontFamily: theme.fonts.body,
   },
   section: {
     marginTop: theme.spacing.lg,
@@ -115,6 +119,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginBottom: theme.spacing.sm,
     color: theme.colors.text,
+    fontFamily: theme.fonts.body,
   },
   inline: {
     flexDirection: "row",
@@ -139,6 +144,7 @@ const styles = StyleSheet.create({
   smallButtonText: {
     color: theme.colors.surface,
     fontSize: 12,
+    fontFamily: theme.fonts.body,
   },
   ignoreRow: {
     flexDirection: "row",
@@ -148,11 +154,13 @@ const styles = StyleSheet.create({
   },
   ignoreText: {
     color: theme.colors.text,
+    fontFamily: theme.fonts.body,
   },
   removeButton: {
     paddingHorizontal: 8,
   },
   removeText: {
     color: theme.colors.danger,
+    fontFamily: theme.fonts.body,
   },
 });

@@ -2,18 +2,18 @@ import { Platform } from "react-native";
 
 export const theme = {
   colors: {
-    bg: "#F5F1E9",
-    surface: "#FFFFFF",
-    surfaceAlt: "#F0E9DD",
-    text: "#1F2A35",
-    textMuted: "#5C6670",
-    brand: "#1B4D6B",
-    brandDark: "#14374E",
-    accent: "#E09F3E",
-    border: "#E2DACC",
-    success: "#2F855A",
-    danger: "#B42318",
-    highlight: "#FFE08A",
+    bg: "#0B1020",
+    surface: "#121826",
+    surfaceAlt: "#1A2234",
+    text: "#E6EDF6",
+    textMuted: "#A7B2C6",
+    brand: "#4A7CFF",
+    brandDark: "#2B57D6",
+    accent: "#22C0FF",
+    border: "#273045",
+    success: "#2ED573",
+    danger: "#F97373",
+    highlight: "#2C3E72",
   },
   radius: {
     sm: 8,
@@ -30,8 +30,8 @@ export const theme = {
   },
   fonts: {
     heading: Platform.select({
-      ios: "AvenirNext-DemiBold",
-      android: "sans-serif-medium",
+      ios: "AvenirNext-Bold",
+      android: "sans-serif-condensed",
       default: "System",
     }),
     body: Platform.select({

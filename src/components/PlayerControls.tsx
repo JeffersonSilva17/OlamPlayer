@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import Slider from "@react-native-community/slider";
 import { theme } from "../theme/theme";
+import { icons } from "../theme/icons";
 
 type Props = {
   isPlaying: boolean;
@@ -58,22 +59,22 @@ export function PlayerControls({
             onPress={onPrev}
             disabled={!canPrev}
           >
-            <Text style={styles.iconText}>{"<<"}</Text>
+            <Text style={styles.iconText}>{icons.prev}</Text>
           </Pressable>
           <Pressable style={styles.button} onPress={onPlayPause}>
-            <Text style={styles.iconText}>{isPlaying ? "Pause" : "Play"}</Text>
+            <Text style={styles.iconText}>{isPlaying ? icons.pause : icons.play}</Text>
           </Pressable>
           <Pressable
             style={[styles.smallButton, !canNext && styles.buttonDisabled]}
             onPress={onNext}
             disabled={!canNext}
           >
-            <Text style={styles.iconText}>{">>"}</Text>
+            <Text style={styles.iconText}>{icons.next}</Text>
           </Pressable>
         </View>
       ) : (
         <Pressable style={styles.button} onPress={onPlayPause}>
-            <Text style={styles.iconText}>{isPlaying ? "Pause" : "Play"}</Text>
+            <Text style={styles.iconText}>{isPlaying ? icons.pause : icons.play}</Text>
         </Pressable>
       )}
     </View>
@@ -103,6 +104,7 @@ const styles = StyleSheet.create({
   time: {
     fontSize: 12,
     color: theme.colors.textMuted,
+    fontFamily: theme.fonts.body,
   },
   button: {
     backgroundColor: theme.colors.brand,
@@ -118,9 +120,11 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.lg,
   },
   iconText: {
-    color: theme.colors.surface,
-    fontSize: 14,
-    fontWeight: "600",
+    color: theme.colors.bg,
+    fontSize: 22,
+    fontWeight: "800",
+    fontFamily: theme.fonts.heading,
+    letterSpacing: 0.4,
   },
   buttonDisabled: {
     backgroundColor: "#9FB0C4",

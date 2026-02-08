@@ -1,5 +1,15 @@
 import React, { useEffect, useRef, useState } from "react";
-import { View, Text, Pressable, StyleSheet, Alert, FlatList } from "react-native";
+import {
+  View,
+  Text,
+  Pressable,
+  StyleSheet,
+  Alert,
+  FlatList,
+  Modal,
+  Dimensions,
+} from "react-native";
+import Slider from "@react-native-community/slider";
 import Video from "react-native-video";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { LibraryStackParamList } from "../navigation/types";
@@ -12,6 +22,8 @@ import { incrementPlaybackStats } from "../domain/playerUseCases";
 import { playQueue } from "../infra/player/playbackQueue";
 import TrackPlayer, { Event, RepeatMode } from "react-native-track-player";
 import { theme } from "../theme/theme";
+import { ScreenBackdrop } from "../components/ScreenBackdrop";
+import { icons } from "../theme/icons";
 
 type Props = NativeStackScreenProps<LibraryStackParamList, "Player">;
 
@@ -34,6 +46,9 @@ export function PlayerScreen({ route }: Props) {
   const [repeatAll, setRepeatAll] = useState(false);
   const [repeatOne, setRepeatOne] = useState(false);
   const [isShuffle, setIsShuffle] = useState(false);
+  const [showVolume, setShowVolume] = useState(false);
+  const [volume, setVolume] = useState(1);
+  const [showQueueModal, setShowQueueModal] = useState(false);
 
   useEffect(() => {
     setCurrent(item);
@@ -75,16 +90,27 @@ export function PlayerScreen({ route }: Props) {
     setQueue(baseAudioQueue, label);
   }, [baseAudioQueue, route.params.queueLabel, setQueue]);
 
+  const isSameQueue = (
+    playerQueue: Array<{ id?: string | number; url?: string }>,
+    targetQueue: MediaItem[],
+  ) => {
+    if (playerQueue.length !== targetQueue.length) return false;
+    for (let i = 0; i < targetQueue.length; i += 1) {
+      const playerItem = playerQueue[i];
+      const targetItem = targetQueue[i];
+      const sameId =
+        playerItem.id != null && `${playerItem.id}` === `${targetItem.id}`;
+      const sameUrl = playerItem.url && playerItem.url === targetItem.uri;
+      if (!sameId && !sameUrl) return false;
+    }
+    return true;
+  };
+
   useEffect(() => {
     if (item.mediaType !== "audio") return;
+    let cancelled = false;
     init().then(async () => {
       try {
-        if (baseAudioQueue && baseAudioQueue.length > 0) {
-          await playQueue(baseAudioQueue);
-        } else {
-          await controller?.load(item.uri, item.mediaType);
-          await play();
-        }
         const currentRepeat = await TrackPlayer.getRepeatMode?.();
         if (currentRepeat === RepeatMode.Queue) {
           setRepeatAll(true);
@@ -96,13 +122,42 @@ export function PlayerScreen({ route }: Props) {
           setRepeatAll(false);
           setRepeatOne(false);
         }
+
+        const active = await TrackPlayer.getActiveTrack();
+        const playerQueue = await TrackPlayer.getQueue();
+        const sameQueue = isSameQueue(playerQueue ?? [], baseAudioQueue);
+        if (active && sameQueue) {
+          return;
+        }
+
+        if (baseAudioQueue && baseAudioQueue.length > 0) {
+          await playQueue(
+            baseAudioQueue,
+            route.params.queueLabel ?? (baseAudioQueue.length > 1 ? "Fila atual" : "Reproducao"),
+          );
+        } else {
+          await controller?.load(item.uri, item.mediaType);
+          await play();
+        }
       } catch (error) {
+        if (cancelled) return;
         await repository.markUnavailable(item.id);
         Alert.alert("Erro", "Nao foi possivel tocar este arquivo. Marquei como indisponivel.");
       }
     });
-    return () => {};
+    return () => {
+      cancelled = true;
+    };
   }, [item, queue, init, controller, play, baseAudioQueue]);
+
+  useEffect(() => {
+    if (item.mediaType !== "audio") return;
+    TrackPlayer.getVolume?.()
+      .then((value) => {
+        if (typeof value === "number") setVolume(value);
+      })
+      .catch(() => {});
+  }, [item.mediaType]);
 
   useEffect(() => {
     if (item.mediaType !== "audio") return () => {};
@@ -218,6 +273,17 @@ export function PlayerScreen({ route }: Props) {
     }
   };
 
+  const onVolumeChange = async (value: number) => {
+    setVolume(value);
+    if (item.mediaType === "audio") {
+      try {
+        await TrackPlayer.setVolume(value);
+      } catch (error) {
+        console.warn("Falha ao ajustar volume", error);
+      }
+    }
+  };
+
   const onToggleShuffle = async () => {
     if (baseAudioQueue.length <= 1) return;
     const next = !isShuffle;
@@ -246,6 +312,11 @@ export function PlayerScreen({ route }: Props) {
     await TrackPlayer.setRepeatMode(RepeatMode.Off);
   };
 
+  const onOpenQueue = () => {
+    if (baseAudioQueue.length === 0) return;
+    setShowQueueModal(true);
+  };
+
   const onPlayPauseVideo = () => {
     setVideoPaused((prev) => !prev);
   };
@@ -258,6 +329,7 @@ export function PlayerScreen({ route }: Props) {
   if (item.mediaType === "video") {
     return (
       <View style={styles.container}>
+        <ScreenBackdrop />
         <View style={styles.header}>
           <Text style={styles.title} numberOfLines={2} ellipsizeMode="tail">
             {videoItem.displayName}
@@ -276,6 +348,7 @@ export function PlayerScreen({ route }: Props) {
           style={styles.video}
           resizeMode="contain"
           paused={videoPaused}
+          volume={volume}
           controls
           onLoad={(data) => {
             setVideoDuration(data.duration * 1000);
@@ -309,11 +382,35 @@ export function PlayerScreen({ route }: Props) {
             setVideoPosition(pos);
           }}
         />
+        <View style={styles.modeRow}>
+          <Pressable style={styles.modeButton} onPress={onShare}>
+            <Text style={[styles.modeText, styles.shareIcon]}>{icons.share}</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.modeButton, showVolume && styles.modeButtonActive]}
+            onPress={() => setShowVolume((prev) => !prev)}
+          >
+            <Text style={[styles.modeText, showVolume && styles.modeTextActive]}>
+              {icons.volume}
+            </Text>
+          </Pressable>
+        </View>
+        {showVolume ? (
+          <View style={styles.volumeRow}>
+            <Slider
+              style={styles.volumeSlider}
+              minimumValue={0}
+              maximumValue={1}
+              value={volume}
+              onValueChange={onVolumeChange}
+              minimumTrackTintColor={theme.colors.brand}
+              maximumTrackTintColor={theme.colors.border}
+              thumbTintColor={theme.colors.accent}
+            />
+          </View>
+        ) : null}
         <Pressable style={styles.secondaryButton} onPress={onFullscreen}>
           <Text style={styles.secondaryButtonText}>Tela cheia</Text>
-        </Pressable>
-        <Pressable style={styles.button} onPress={onShare}>
-          <Text style={styles.buttonText}>Compartilhar</Text>
         </Pressable>
       </View>
     );
@@ -321,6 +418,7 @@ export function PlayerScreen({ route }: Props) {
 
   return (
     <View style={styles.container}>
+      <ScreenBackdrop />
       <View style={styles.header}>
         <Text style={styles.title} numberOfLines={2} ellipsizeMode="tail">
           {currentAudioItem.displayName}
@@ -348,8 +446,8 @@ export function PlayerScreen({ route }: Props) {
           style={[styles.modeButton, isShuffle && styles.modeButtonActive]}
           onPress={onToggleShuffle}
         >
-          <Text style={[styles.modeText, isShuffle && styles.modeTextActive]}>
-            Shuffle
+          <Text style={[styles.modeText, styles.shuffleIcon, isShuffle && styles.modeTextActive]}>
+            {icons.shuffle}
           </Text>
         </Pressable>
         <Pressable
@@ -362,36 +460,94 @@ export function PlayerScreen({ route }: Props) {
           <Text
             style={[
               styles.modeText,
+              styles.repeatIcon,
               (repeatAll || repeatOne) && styles.modeTextActive,
             ]}
           >
-            {repeatOne ? "Repeat 1" : repeatAll ? "Repeat All" : "Repeat"}
+            {repeatOne ? icons.repeatOne : icons.repeat}
           </Text>
         </Pressable>
+        <Pressable
+          style={[styles.modeButton, showVolume && styles.modeButtonActive]}
+          onPress={() => setShowVolume((prev) => !prev)}
+        >
+          <Text style={[styles.modeText, showVolume && styles.modeTextActive]}>
+            {icons.volume}
+          </Text>
+        </Pressable>
+        <Pressable style={styles.modeButton} onPress={onShare}>
+          <Text style={[styles.modeText, styles.shareIcon]}>{icons.share}</Text>
+        </Pressable>
       </View>
-      <View style={styles.queueSection}>
-        <Text style={styles.queueTitle}>
+      {showVolume ? (
+        <View style={styles.volumeRow}>
+          <Slider
+            style={styles.volumeSlider}
+            minimumValue={0}
+            maximumValue={1}
+            value={volume}
+            onValueChange={onVolumeChange}
+            minimumTrackTintColor={theme.colors.brand}
+            maximumTrackTintColor={theme.colors.border}
+            thumbTintColor={theme.colors.accent}
+          />
+        </View>
+      ) : null}
+      <View style={styles.fillSpacer} />
+      <Pressable style={styles.queuePeek} onPress={onOpenQueue}>
+        <View style={styles.queuePeekHandle} />
+        <Text style={styles.queuePeekText}>
           {route.params.queueLabel ??
             (baseAudioQueue.length > 1 ? "Fila atual" : "Reproducao atual")}
+          {" \u00B7 "}
+          {baseAudioQueue.length}
         </Text>
-        <FlatList
-          data={baseAudioQueue}
-          keyExtractor={(entry) => entry.id}
-          renderItem={({ item: entry }) => {
-            const isActive = entry.uri === currentAudioUri;
-            return (
-              <View style={styles.queueRow}>
-                <Text style={[styles.queueText, isActive && styles.queueTextActive]}>
-                  {entry.displayName}
-                </Text>
-              </View>
-            );
-          }}
-        />
-      </View>
-      <Pressable style={styles.button} onPress={onShare}>
-        <Text style={styles.buttonText}>Compartilhar</Text>
       </Pressable>
+      <Modal visible={showQueueModal} transparent animationType="slide">
+        <Pressable style={styles.queueBackdrop} onPress={() => setShowQueueModal(false)}>
+          <Pressable style={styles.queueSheet} onPress={() => {}}>
+            <View style={styles.queueHeader}>
+              <View style={styles.queueHandle} />
+              <Text style={styles.queueTitle}>
+                {route.params.queueLabel ??
+                  (baseAudioQueue.length > 1 ? "Fila atual" : "Reproducao atual")}
+              </Text>
+            </View>
+            <FlatList
+              data={baseAudioQueue}
+              keyExtractor={(entry) => entry.id}
+              contentContainerStyle={styles.queueList}
+              renderItem={({ item: entry, index }) => {
+                const isActive = entry.uri === currentAudioUri;
+                return (
+                  <Pressable
+                    style={[styles.queueRowCard, isActive && styles.queueRowActive]}
+                    onPress={async () => {
+                      try {
+                        await TrackPlayer.skip(index);
+                        await TrackPlayer.play();
+                        setShowQueueModal(false);
+                      } catch (error) {
+                        console.warn("Falha ao trocar faixa", error);
+                      }
+                    }}
+                  >
+                    <Text style={[styles.queueText, isActive && styles.queueTextActive]}>
+                      {entry.displayName}
+                    </Text>
+                  </Pressable>
+                );
+              }}
+            />
+            <Pressable
+              style={styles.queueClose}
+              onPress={() => setShowQueueModal(false)}
+            >
+              <Text style={styles.queueCloseText}>Fechar</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -417,6 +573,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 12,
     color: theme.colors.textMuted,
+    fontFamily: theme.fonts.body,
   },
   video: {
     width: "100%",
@@ -431,8 +588,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   buttonText: {
-    color: theme.colors.surface,
-    fontWeight: "600",
+    color: theme.colors.bg,
+    fontWeight: "800",
+    fontFamily: theme.fonts.body,
+    fontSize: 18,
+  },
+  shareIcon: {
+    fontSize: 20,
   },
   modeRow: {
     marginTop: theme.spacing.sm,
@@ -440,22 +602,28 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
   },
   modeButton: {
-    borderWidth: 1,
-    borderColor: theme.colors.brand,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: theme.radius.md,
-    minWidth: 44,
+    backgroundColor: theme.colors.brand,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
-    backgroundColor: theme.colors.surface,
+    justifyContent: "center",
   },
   modeButtonActive: {
-    backgroundColor: theme.colors.brand,
+    backgroundColor: theme.colors.accent,
   },
   modeText: {
-    color: theme.colors.brand,
-    fontSize: 12,
-    fontWeight: "600",
+    color: theme.colors.bg,
+    fontSize: 20,
+    fontWeight: "800",
+    fontFamily: theme.fonts.body,
+  },
+  shuffleIcon: {
+    fontSize: 22,
+  },
+  repeatIcon: {
+    fontSize: 22,
+    letterSpacing: 0.6,
   },
   modeTextActive: {
     color: theme.colors.surface,
@@ -471,6 +639,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: theme.colors.textMuted,
     marginBottom: theme.spacing.xs,
+    fontFamily: theme.fonts.body,
   },
   queueRow: {
     paddingVertical: 6,
@@ -478,6 +647,7 @@ const styles = StyleSheet.create({
   queueText: {
     fontSize: 13,
     color: theme.colors.text,
+    fontFamily: theme.fonts.body,
   },
   queueTextActive: {
     fontWeight: "700",
@@ -495,6 +665,110 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     color: theme.colors.brand,
     fontWeight: "600",
+    fontFamily: theme.fonts.body,
+  },
+  volumeRow: {
+    marginTop: theme.spacing.sm,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+  },
+  volumeSlider: {
+    width: "100%",
+    height: 32,
+  },
+  fillSpacer: {
+    flex: 1,
+  },
+  queuePeek: {
+    marginTop: theme.spacing.sm,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    paddingVertical: 10,
+    paddingHorizontal: theme.spacing.md,
+    alignItems: "center",
+  },
+  queuePeekHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: theme.colors.border,
+    marginBottom: 6,
+  },
+  queuePeekText: {
+    color: theme.colors.textMuted,
+    fontFamily: theme.fonts.body,
+    fontSize: 12,
+  },
+  queueBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-end",
+  },
+  queueSheet: {
+    backgroundColor: theme.colors.surface,
+    borderTopLeftRadius: theme.radius.lg,
+    borderTopRightRadius: theme.radius.lg,
+    padding: theme.spacing.md,
+    maxHeight: Dimensions.get("window").height * 0.8,
+  },
+  queueHeader: {
+    alignItems: "center",
+    marginBottom: theme.spacing.sm,
+  },
+  queueHandle: {
+    width: 44,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: theme.colors.border,
+    marginBottom: 8,
+  },
+  queueTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: theme.colors.text,
+    fontFamily: theme.fonts.heading,
+  },
+  queueList: {
+    paddingBottom: theme.spacing.lg,
+  },
+  queueRowCard: {
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.lg,
+    backgroundColor: theme.colors.surfaceAlt,
+    paddingVertical: 10,
+    paddingHorizontal: theme.spacing.sm,
+    marginBottom: theme.spacing.sm,
+  },
+  queueRowActive: {
+    borderColor: theme.colors.brand,
+  },
+  queueText: {
+    fontSize: 13,
+    color: theme.colors.text,
+    fontFamily: theme.fonts.body,
+  },
+  queueTextActive: {
+    fontWeight: "700",
+    color: theme.colors.brand,
+  },
+  queueClose: {
+    marginTop: theme.spacing.sm,
+    backgroundColor: theme.colors.brand,
+    borderRadius: theme.radius.md,
+    alignItems: "center",
+    paddingVertical: 10,
+  },
+  queueCloseText: {
+    color: theme.colors.bg,
+    fontWeight: "800",
+    fontFamily: theme.fonts.body,
   },
 });
 

@@ -71,6 +71,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     color: theme.colors.textMuted,
+    fontFamily: theme.fonts.body,
   },
   listContent: {
     paddingBottom: 140,

@@ -69,10 +69,20 @@ export class TrackPlayerController implements PlayerController {
     this.state.positionMs = 0;
     this.state.durationMs = undefined;
     await TrackPlayer.reset();
+    let title = uri;
+    try {
+      const last = uri.split("/").pop();
+      if (last) {
+        title = decodeURIComponent(last);
+      }
+    } catch {
+      title = uri;
+    }
     await TrackPlayer.add({
       id: uri,
       url: uri,
-      title: uri,
+      title,
+      artist: "OlamPlayer",
     });
     this.emit();
   }

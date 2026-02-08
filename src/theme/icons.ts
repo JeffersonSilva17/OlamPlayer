@@ -1,0 +1,18 @@
+export const icons = {
+  play: "\u25B6",
+  pause: "\u275A\u275A",
+  next: "\u23ED",
+  prev: "\u23EE",
+  shuffle: "\u21C4",
+  repeat: "\u27F3",
+  repeatOne: "\u27F31",
+  share: "\u21EA",
+  trash: "\u{1F5D1}",
+  volume: "\u{1F50A}",
+  playlist: "\u{1F3B5}",
+  audio: "\u{1F3B5}",
+  video: "\u{1F3AC}",
+  settings: "\u2699",
+  tabsPlaylists: "\u{1F3B6}",
+  search: "\u{1F50D}",
+};
