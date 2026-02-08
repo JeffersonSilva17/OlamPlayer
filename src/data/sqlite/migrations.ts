@@ -88,4 +88,11 @@ export async function runMigrations(db: NitroSQLiteConnection): Promise<void> {
       pattern TEXT PRIMARY KEY
     );`,
   );
+
+  await db.executeAsync(
+    `CREATE TABLE IF NOT EXISTS app_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );`,
+  );
 }

@@ -22,3 +22,8 @@ export type RootTabParamList = {
   Playlists: undefined;
   Configuracoes: undefined;
 };
+
+export type SettingsStackParamList = {
+  Settings: undefined;
+  AutoPlaySettings: undefined;
+};

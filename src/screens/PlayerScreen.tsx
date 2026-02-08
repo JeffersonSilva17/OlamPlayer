@@ -18,7 +18,7 @@ import { usePlayerStore } from "../stores/playerStore";
 import { PlayerControls } from "../components/PlayerControls";
 import { reactNativeShareAdapter } from "../infra/share/ReactNativeShareAdapter";
 import { MediaRepositorySqlite } from "../data/repositories/MediaRepositorySqlite";
-import { incrementPlaybackStats } from "../domain/playerUseCases";
+import { incrementPlaybackStats, updateMediaDuration } from "../domain/playerUseCases";
 import { playQueue } from "../infra/player/playbackQueue";
 import TrackPlayer, { Event, RepeatMode } from "react-native-track-player";
 import { theme } from "../theme/theme";
@@ -39,6 +39,7 @@ export function PlayerScreen({ route }: Props) {
   const [videoPosition, setVideoPosition] = useState(0);
   const countedAudioIdsRef = useRef<Set<string>>(new Set());
   const countedVideoIdsRef = useRef<Set<string>>(new Set());
+  const updatedDurationIdsRef = useRef<Set<string>>(new Set());
   const [videoQueue, setVideoQueue] = useState<MediaItem[] | undefined>(undefined);
   const [videoIndex, setVideoIndex] = useState(0);
   const [videoItem, setVideoItem] = useState<MediaItem>(item);
@@ -187,6 +188,21 @@ export function PlayerScreen({ route }: Props) {
     countedAudioIdsRef.current.add(currentItem.id);
     incrementPlaybackStats(repository, currentItem.id).catch(() => {});
   }, [item, queue, state.currentUri, setCurrent, baseAudioQueue]);
+
+  useEffect(() => {
+    if (item.mediaType !== "audio") return;
+    const durationMs = state.durationMs;
+    if (!durationMs || durationMs <= 0) return;
+    const currentUri = state.currentUri ?? item.uri;
+    const currentItem =
+      baseAudioQueue.find((entry) => entry.uri === currentUri) ??
+      item;
+    if (!currentItem) return;
+    if (updatedDurationIdsRef.current.has(currentItem.id)) return;
+    updateMediaDuration(repository, currentItem.id, durationMs).then(() => {
+      updatedDurationIdsRef.current.add(currentItem.id);
+    });
+  }, [item, state.durationMs, state.currentUri, baseAudioQueue]);
 
   const currentAudioUri = state.currentUri ?? item.uri;
   const currentAudioItem =

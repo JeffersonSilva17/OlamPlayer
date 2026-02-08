@@ -92,4 +92,10 @@ export interface SettingsRepository {
   addIgnoredFolder(pattern: string): Promise<void>;
   removeIgnoredFolder(pattern: string): Promise<void>;
   clearLibrary(): Promise<void>;
+  getAutoPlayEnabled(): Promise<boolean>;
+  setAutoPlayEnabled(enabled: boolean): Promise<void>;
+  getAutoPlayMinMs(): Promise<number>;
+  setAutoPlayMinMs(valueMs: number): Promise<void>;
+  getAutoPlayMaxMs(): Promise<number>;
+  setAutoPlayMaxMs(valueMs: number): Promise<void>;
 }

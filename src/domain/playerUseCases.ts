@@ -21,3 +21,20 @@ export async function incrementPlaybackStats(
     },
   ]);
 }
+
+export async function updateMediaDuration(
+  repo: MediaRepository,
+  mediaId: string,
+  durationMs: number,
+): Promise<void> {
+  if (!durationMs || durationMs <= 0) return;
+  const item = await repo.getMediaById(mediaId);
+  if (!item) return;
+  if (item.durationMs && Math.abs(item.durationMs - durationMs) < 1000) return;
+  await repo.upsertMedia([
+    {
+      ...item,
+      durationMs,
+    },
+  ]);
+}

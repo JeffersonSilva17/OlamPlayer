@@ -1,16 +1,22 @@
 import React from "react";
-import { View, Text, Pressable, StyleSheet, Alert } from "react-native";
+import { View, Text, Pressable, StyleSheet, Alert, BackHandler } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { SettingsStackParamList } from "../navigation/types";
 import { useSettingsStore } from "../stores/settingsStore";
 import { useMediaStore } from "../stores/mediaStore";
 import { theme } from "../theme/theme";
 import { ScreenBackdrop } from "../components/ScreenBackdrop";
 
+type Navigation = NativeStackNavigationProp<SettingsStackParamList, "Settings">;
+
 export function SettingsScreen() {
+  const navigation = useNavigation<Navigation>();
   const { clearLibrary, clearing } = useSettingsStore();
   const { loadMedia } = useMediaStore();
 
   const onClear = async () => {
-    Alert.alert("Limpar biblioteca", "Isso remove apenas o catalogo local.", [
+    Alert.alert("Limpar biblioteca", "Isso remove apenas o catálogo local.", [
       { text: "Cancelar", style: "cancel" },
       {
         text: "Limpar",
@@ -27,12 +33,33 @@ export function SettingsScreen() {
   return (
     <View style={styles.container}>
       <ScreenBackdrop />
-      <Text style={styles.title}>Configuracoes</Text>
-      <Pressable style={styles.button} onPress={onClear} disabled={clearing}>
+      <Text style={styles.title}>Configurações</Text>
+      <Pressable
+        style={styles.rowItem}
+        onPress={() => navigation.navigate("AutoPlaySettings")}
+      >
+        <Text style={styles.rowItemText}>Reprodução automática</Text>
+      </Pressable>
+      <Pressable
+        style={styles.rowItem}
+        onPress={() =>
+          Alert.alert("Sair do app", "Deseja sair do aplicativo?", [
+            { text: "Cancelar", style: "cancel" },
+            {
+              text: "Sair",
+              style: "destructive",
+              onPress: () => BackHandler.exitApp(),
+            },
+          ])
+        }
+      >
+        <Text style={styles.rowItemText}>Sair do app</Text>
+      </Pressable>
+      <Pressable style={styles.dangerButton} onPress={onClear} disabled={clearing}>
         <Text style={styles.buttonText}>Limpar biblioteca</Text>
       </Pressable>
       <Text style={styles.caption}>
-        A limpeza remove apenas o catalogo do SQLite. Os arquivos originais permanecem.
+        A limpeza remove apenas o catálogo do SQLite. Os arquivos originais permanecem.
       </Text>
     </View>
   );
@@ -51,7 +78,21 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     fontFamily: theme.fonts.heading,
   },
-  button: {
+  rowItem: {
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.md,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    backgroundColor: theme.colors.surface,
+    marginBottom: theme.spacing.sm,
+  },
+  rowItemText: {
+    color: theme.colors.text,
+    fontFamily: theme.fonts.body,
+    fontWeight: "600",
+  },
+  dangerButton: {
     backgroundColor: theme.colors.danger,
     paddingVertical: 12,
     borderRadius: theme.radius.md,

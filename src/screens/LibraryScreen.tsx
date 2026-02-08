@@ -9,18 +9,25 @@ import {
   FlatList,
   Platform,
   Alert,
+  Switch,
 } from "react-native";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useIsFocused, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp, NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { LibraryStackParamList } from "../navigation/types";
 import type { MediaItem, MediaType } from "../models/media";
 import { useMediaStore } from "../stores/mediaStore";
 import { usePlaylistStore } from "../stores/playlistStore";
+import { useSettingsStore } from "../stores/settingsStore";
 import { reactNativeShareAdapter } from "../infra/share/ReactNativeShareAdapter";
 import { MediaList } from "../components/MediaList";
 import { theme } from "../theme/theme";
 import { ScreenBackdrop } from "../components/ScreenBackdrop";
 import { icons } from "../theme/icons";
+import { usePlayerStore } from "../stores/playerStore";
+import { playQueue } from "../infra/player/playbackQueue";
+import { DurationProbe } from "../components/DurationProbe";
+import { MediaRepositorySqlite } from "../data/repositories/MediaRepositorySqlite";
+import { updateMediaDuration } from "../domain/playerUseCases";
 import { StackedNoteIcon } from "../components/StackedNoteIcon";
 
 type Navigation = NativeStackNavigationProp<LibraryStackParamList, "Library">;
@@ -28,6 +35,7 @@ type Props = NativeStackScreenProps<LibraryStackParamList, "Library">;
 
 export function LibraryScreen({ route }: Props) {
   const navigation = useNavigation<Navigation>();
+  const isFocused = useIsFocused();
   const forcedType = route.params?.mediaType;
   const hideTabs = route.params?.hideTabs;
   const showAddButton = route.params?.showAddButton;
@@ -54,6 +62,18 @@ export function LibraryScreen({ route }: Props) {
     createPlaylistWithItems,
     createPlaylist,
   } = usePlaylistStore();
+  const {
+    autoPlayEnabled,
+    loadAutoPlaySettings,
+    setAutoPlayEnabled,
+    autoPlayMinMs,
+    autoPlayMaxMs,
+  } = useSettingsStore();
+  const { state: playerState, setQueue, setCurrent } = usePlayerStore();
+  const durationRepoRef = React.useRef<MediaRepositorySqlite | null>(null);
+  if (!durationRepoRef.current) {
+    durationRepoRef.current = new MediaRepositorySqlite();
+  }
   const [showPlaylistModal, setShowPlaylistModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<MediaItem | null>(null);
   const [selectionMode, setSelectionMode] = useState(false);
@@ -80,11 +100,67 @@ export function LibraryScreen({ route }: Props) {
   }, [forcedType]);
 
   useEffect(() => {
+    loadAutoPlaySettings();
+  }, [loadAutoPlaySettings]);
+
+  useEffect(() => {
     const timeout = setTimeout(() => {
       loadMedia(activeTab);
     }, 300);
     return () => clearTimeout(timeout);
   }, [query, activeTab, loadMedia, sort]);
+
+  const matchesAutoPlayRule = useCallback(
+    (item: MediaItem): boolean => {
+      const duration = item.durationMs ?? 0;
+      if (duration === 0) {
+        return autoPlayMinMs === 0;
+      }
+      return duration >= autoPlayMinMs && duration <= autoPlayMaxMs;
+    },
+    [autoPlayMinMs, autoPlayMaxMs],
+  );
+
+  const maybeAutoPlay = useCallback(async () => {
+    if (activeTab !== "audio") return;
+    if (!autoPlayEnabled) return;
+    if (playerState.isPlaying) return;
+    const list = items[activeTab];
+    if (!list || list.length === 0) return;
+    const candidate = list.find(matchesAutoPlayRule);
+    if (!candidate) return;
+    setCurrent(candidate);
+    setQueue([candidate], "Reproducao automatica");
+    await playQueue([candidate], "Reproducao automatica");
+  }, [
+    activeTab,
+    autoPlayEnabled,
+    playerState.isPlaying,
+    items,
+    matchesAutoPlayRule,
+    setCurrent,
+    setQueue,
+  ]);
+
+  const itemsToProbe = useMemo(() => {
+    if (activeTab !== "audio") return [];
+    if (!autoPlayEnabled) return [];
+    if (playerState.isPlaying) return [];
+    return items[activeTab]
+      .filter((entry) => entry.mediaType === "audio" && (!entry.durationMs || entry.durationMs <= 0))
+      .slice(0, 6);
+  }, [items, activeTab, autoPlayEnabled, playerState.isPlaying]);
+
+  useFocusEffect(
+    useCallback(() => {
+      maybeAutoPlay();
+    }, [maybeAutoPlay]),
+  );
+
+  useEffect(() => {
+    if (!isFocused) return;
+    maybeAutoPlay();
+  }, [isFocused, autoPlayEnabled, autoPlayMinMs, autoPlayMaxMs, items, maybeAutoPlay]);
 
   const onPlay = (item: MediaItem) =>
     navigation.navigate("Player", { item, queue: [item], queueLabel: item.displayName });
@@ -221,6 +297,31 @@ export function LibraryScreen({ route }: Props) {
           </Pressable>
         </View>
       ) : null}
+      {activeTab === "audio" ? (
+        <View style={styles.autoPlayRow}>
+          <Text style={styles.autoPlayLabel}>Reproducao automatica</Text>
+          <Pressable
+            style={styles.autoPlayHint}
+            onPress={() =>
+              Alert.alert(
+                "Reproducao automatica",
+                "O limite de tempo pode ser ajustado em Configurações. Se a duração não estiver disponível, o arquivo pode ser incluído.",
+              )
+            }
+          >
+            <Text style={styles.autoPlayHintText}>?</Text>
+          </Pressable>
+          <Switch
+            value={autoPlayEnabled}
+            onValueChange={(value) => setAutoPlayEnabled(value)}
+            thumbColor={autoPlayEnabled ? theme.colors.accent : theme.colors.border}
+            trackColor={{
+              true: theme.colors.brand,
+              false: theme.colors.border,
+            }}
+          />
+        </View>
+      ) : null}
       <View style={styles.searchHeader}>
         <View style={styles.searchBar}>
           <Text style={styles.searchIcon}>{icons.search}</Text>
@@ -305,6 +406,17 @@ export function LibraryScreen({ route }: Props) {
         onToggleSelect={toggleSelection}
         onLongPressSelect={startSelection}
         query={query}
+      />
+      <DurationProbe
+        items={itemsToProbe}
+        enabled={itemsToProbe.length > 0}
+        onDuration={(item, durationMs) => {
+          if (!durationRepoRef.current) return;
+          updateMediaDuration(durationRepoRef.current, item.id, durationMs).catch(() => {});
+        }}
+        onDone={() => {
+          loadMedia("audio");
+        }}
       />
       <Modal visible={showPlaylistModal} transparent animationType="slide">
         <View style={styles.modalBackdrop}>
@@ -495,6 +607,38 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
     alignItems: "center",
     marginBottom: theme.spacing.sm,
+  },
+  autoPlayRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+    marginBottom: theme.spacing.sm,
+    paddingVertical: 6,
+    paddingHorizontal: theme.spacing.sm,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+  },
+  autoPlayLabel: {
+    flex: 1,
+    color: theme.colors.text,
+    fontFamily: theme.fonts.body,
+    fontWeight: "600",
+  },
+  autoPlayHint: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  autoPlayHintText: {
+    color: theme.colors.textMuted,
+    fontWeight: "700",
+    fontFamily: theme.fonts.body,
   },
   searchBar: {
     flex: 1,

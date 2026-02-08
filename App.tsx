@@ -1,11 +1,7 @@
 import "react-native-get-random-values";
 import React, { useEffect } from "react";
 import { StatusBar, StyleSheet, Text, View } from "react-native";
-import {
-  SafeAreaProvider,
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
+import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { NavigationContainer, createNavigationContainerRef } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -14,12 +10,14 @@ import type {
   LibraryStackParamList,
   PlaylistsStackParamList,
   RootTabParamList,
+  SettingsStackParamList,
 } from "./src/navigation/types";
 import { LibraryScreen } from "./src/screens/LibraryScreen";
 import { PlayerScreen } from "./src/screens/PlayerScreen";
 import { PlaylistsScreen } from "./src/screens/PlaylistsScreen";
 import { PlaylistDetailScreen } from "./src/screens/PlaylistDetailScreen";
 import { SettingsScreen } from "./src/screens/SettingsScreen";
+import { AutoPlaySettingsScreen } from "./src/screens/AutoPlaySettingsScreen";
 import { usePlayerStore } from "./src/stores/playerStore";
 import { useMediaStore } from "./src/stores/mediaStore";
 import { subscribeOpenFiles } from "./src/infra/ios/OpenFileModule";
@@ -30,6 +28,7 @@ import { icons } from "./src/theme/icons";
 const Tab = createBottomTabNavigator<RootTabParamList>();
 const LibraryStack = createNativeStackNavigator<LibraryStackParamList>();
 const PlaylistsStack = createNativeStackNavigator<PlaylistsStackParamList>();
+const SettingsStack = createNativeStackNavigator<SettingsStackParamList>();
 const navigationRef = createNavigationContainerRef<RootTabParamList>();
 
 enableScreens();
@@ -69,7 +68,16 @@ function PlaylistsStackScreen() {
   );
 }
 
-function App() {
+function SettingsStackScreen() {
+  return (
+    <SettingsStack.Navigator screenOptions={{ headerShown: false }}>
+      <SettingsStack.Screen name="Settings" component={SettingsScreen} />
+      <SettingsStack.Screen name="AutoPlaySettings" component={AutoPlaySettingsScreen} />
+    </SettingsStack.Navigator>
+  );
+}
+
+function AppShell() {
   const { init } = usePlayerStore();
   const { addExternalFiles } = useMediaStore();
   const [currentRoute, setCurrentRoute] = React.useState<string | null>(null);
@@ -90,7 +98,7 @@ function App() {
   };
 
   return (
-    <SafeAreaProvider>
+    <>
       <StatusBar barStyle="light-content" backgroundColor={theme.colors.bg} />
       <NavigationContainer
         ref={navigationRef}
@@ -179,7 +187,7 @@ function App() {
             />
             <Tab.Screen
               name="Configuracoes"
-              component={SettingsScreen}
+              component={SettingsStackScreen}
               options={{
                 tabBarIcon: ({ color, focused }) => (
                   <Text
@@ -198,6 +206,14 @@ function App() {
           {currentRoute !== "Player" ? <MiniPlayer /> : null}
         </View>
       </NavigationContainer>
+    </>
+  );
+}
+
+function App() {
+  return (
+    <SafeAreaProvider>
+      <AppShell />
     </SafeAreaProvider>
   );
 }
