@@ -24,6 +24,7 @@ import { subscribeOpenFiles } from "./src/infra/ios/OpenFileModule";
 import { MiniPlayer } from "./src/components/MiniPlayer";
 import { theme } from "./src/theme/theme";
 import { icons } from "./src/theme/icons";
+import { AudioTabIcon, PlaylistTabIcon, VideoTabIcon } from "./src/components/TabIcons";
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 const LibraryStack = createNativeStackNavigator<LibraryStackParamList>();
@@ -138,51 +139,21 @@ function AppShell() {
               name="Video"
               component={VideoStackScreen}
               options={{
-                tabBarIcon: ({ color, focused }) => (
-                  <Text
-                    style={[
-                      styles.tabIcon,
-                      { color },
-                      focused && styles.tabIconActive,
-                    ]}
-                  >
-                    {icons.video}
-                  </Text>
-                ),
+                tabBarIcon: ({ focused }) => <VideoTabIcon focused={focused} />,
               }}
             />
             <Tab.Screen
               name="Audio"
               component={AudioStackScreen}
               options={{
-                tabBarIcon: ({ color, focused }) => (
-                  <Text
-                    style={[
-                      styles.tabIcon,
-                      { color },
-                      focused && styles.tabIconActive,
-                    ]}
-                  >
-                    {icons.audio}
-                  </Text>
-                ),
+                tabBarIcon: ({ focused }) => <AudioTabIcon focused={focused} />,
               }}
             />
             <Tab.Screen
               name="Playlists"
               component={PlaylistsStackScreen}
               options={{
-                tabBarIcon: ({ color, focused }) => (
-                  <Text
-                    style={[
-                      styles.tabIcon,
-                      { color },
-                      focused && styles.tabIconActive,
-                    ]}
-                  >
-                    {icons.tabsPlaylists}
-                  </Text>
-                ),
+                tabBarIcon: ({ focused }) => <PlaylistTabIcon focused={focused} />,
               }}
             />
             <Tab.Screen

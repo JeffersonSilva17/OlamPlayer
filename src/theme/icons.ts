@@ -15,4 +15,5 @@ export const icons = {
   settings: "\u2699",
   tabsPlaylists: "\u{1F3B6}",
   search: "\u{1F50D}",
+  treble: "\u{1D11E}",
 };

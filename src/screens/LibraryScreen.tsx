@@ -29,6 +29,7 @@ import { DurationProbe } from "../components/DurationProbe";
 import { MediaRepositorySqlite } from "../data/repositories/MediaRepositorySqlite";
 import { updateMediaDuration } from "../domain/playerUseCases";
 import { StackedNoteIcon } from "../components/StackedNoteIcon";
+import { ShareIcon } from "../components/ActionIcons";
 
 type Navigation = NativeStackNavigationProp<LibraryStackParamList, "Library">;
 type Props = NativeStackScreenProps<LibraryStackParamList, "Library">;
@@ -47,6 +48,7 @@ export function LibraryScreen({ route }: Props) {
     setQuery,
     removeMedia,
     sort,
+    order,
     setSort,
     reimportMedia,
     addFiles,
@@ -70,6 +72,10 @@ export function LibraryScreen({ route }: Props) {
     autoPlayMaxMs,
   } = useSettingsStore();
   const { state: playerState, setQueue, setCurrent } = usePlayerStore();
+  const playingUri =
+    playerState.mediaType === "audio" || playerState.mediaType === "video"
+      ? playerState.currentUri
+      : undefined;
   const durationRepoRef = React.useRef<MediaRepositorySqlite | null>(null);
   if (!durationRepoRef.current) {
     durationRepoRef.current = new MediaRepositorySqlite();
@@ -108,7 +114,7 @@ export function LibraryScreen({ route }: Props) {
       loadMedia(activeTab);
     }, 300);
     return () => clearTimeout(timeout);
-  }, [query, activeTab, loadMedia, sort]);
+  }, [query, activeTab, loadMedia, sort, order]);
 
   const matchesAutoPlayRule = useCallback(
     (item: MediaItem): boolean => {
@@ -130,8 +136,8 @@ export function LibraryScreen({ route }: Props) {
     const candidate = list.find(matchesAutoPlayRule);
     if (!candidate) return;
     setCurrent(candidate);
-    setQueue([candidate], "Reproducao automatica");
-    await playQueue([candidate], "Reproducao automatica");
+    setQueue([candidate], "Reprodução automática");
+    await playQueue([candidate], "Reprodução automática");
   }, [
     activeTab,
     autoPlayEnabled,
@@ -164,6 +170,15 @@ export function LibraryScreen({ route }: Props) {
 
   const onPlay = (item: MediaItem) =>
     navigation.navigate("Player", { item, queue: [item], queueLabel: item.displayName });
+  const onPlayAll = () => {
+    const list = items[activeTab];
+    if (!list || list.length === 0) return;
+    navigation.navigate("Player", {
+      item: list[0],
+      queue: list,
+      queueLabel: "Audios",
+    });
+  };
   const onRemove = (item: MediaItem) => removeMedia(item.id, item.mediaType);
   const onShare = async (item: MediaItem) => {
     try {
@@ -299,12 +314,12 @@ export function LibraryScreen({ route }: Props) {
       ) : null}
       {activeTab === "audio" ? (
         <View style={styles.autoPlayRow}>
-          <Text style={styles.autoPlayLabel}>Reproducao automatica</Text>
+          <Text style={styles.autoPlayLabel}>Reprodução automática</Text>
           <Pressable
             style={styles.autoPlayHint}
             onPress={() =>
               Alert.alert(
-                "Reproducao automatica",
+                "Reprodução automática",
                 "O limite de tempo pode ser ajustado em Configurações. Se a duração não estiver disponível, o arquivo pode ser incluído.",
               )
             }
@@ -342,7 +357,14 @@ export function LibraryScreen({ route }: Props) {
       <View style={styles.sortRow}>
         <Pressable
           style={[styles.sortButton, sort === "name" && styles.sortButtonActive]}
-          onPress={() => setSort("name")}
+          onPress={() => {
+            if (sort !== "name") {
+              setSort("name", "asc");
+              return;
+            }
+            const nextOrder = order === "asc" ? "desc" : "asc";
+            setSort("name", nextOrder);
+          }}
         >
           <Text
             style={[
@@ -350,12 +372,12 @@ export function LibraryScreen({ route }: Props) {
               sort === "name" && styles.sortButtonTextActive,
             ]}
           >
-            Nome
+            Nome {sort === "name" && order === "desc" ? "Z-A" : "A-Z"}
           </Text>
         </Pressable>
         <Pressable
           style={[styles.sortButton, sort === "dateAdded" && styles.sortButtonActive]}
-          onPress={() => setSort("dateAdded")}
+          onPress={() => setSort("dateAdded", "desc")}
         >
           <Text
             style={[
@@ -366,6 +388,11 @@ export function LibraryScreen({ route }: Props) {
             Recentes
           </Text>
         </Pressable>
+        {activeTab === "audio" ? (
+          <Pressable style={styles.sortButton} onPress={onPlayAll}>
+            <Text style={styles.sortButtonText}>Tocar tudo</Text>
+          </Pressable>
+        ) : null}
       </View>
       {selectionMode ? (
         <View style={styles.selectionBar}>
@@ -377,7 +404,7 @@ export function LibraryScreen({ route }: Props) {
               <Text style={styles.selectionIcon}>{icons.play}</Text>
             </Pressable>
             <Pressable style={styles.selectionIconButton} onPress={shareSelection}>
-              <Text style={styles.selectionIcon}>{icons.share}</Text>
+              <ShareIcon color={theme.colors.bg} size={16} />
             </Pressable>
             <Pressable style={styles.selectionIconButton} onPress={openPlaylistPickerForSelection}>
               <View style={styles.selectionPlaylist}>
@@ -406,6 +433,9 @@ export function LibraryScreen({ route }: Props) {
         onToggleSelect={toggleSelection}
         onLongPressSelect={startSelection}
         query={query}
+        playingUri={playingUri}
+        isPlaying={playerState.isPlaying}
+        compact={activeTab === "audio"}
       />
       <DurationProbe
         items={itemsToProbe}
@@ -868,3 +898,5 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
   },
 });
+
+

@@ -14,6 +14,7 @@ type Props = {
   onNext?: () => void;
   canPrev?: boolean;
   canNext?: boolean;
+  showControls?: boolean;
 };
 
 function formatTime(ms?: number): string {
@@ -34,6 +35,7 @@ export function PlayerControls({
   onNext,
   canPrev = true,
   canNext = true,
+  showControls = true,
 }: Props) {
   const showSkip = Boolean(onPrev || onNext);
   return (
@@ -52,7 +54,7 @@ export function PlayerControls({
         <Text style={styles.time}>{formatTime(positionMs)}</Text>
         <Text style={styles.time}>{formatTime(durationMs)}</Text>
       </View>
-      {showSkip ? (
+      {showControls && showSkip ? (
         <View style={styles.controlsRow}>
           <Pressable
             style={[styles.smallButton, !canPrev && styles.buttonDisabled]}
@@ -72,11 +74,11 @@ export function PlayerControls({
             <Text style={styles.iconText}>{icons.next}</Text>
           </Pressable>
         </View>
-      ) : (
+      ) : showControls ? (
         <Pressable style={styles.button} onPress={onPlayPause}>
             <Text style={styles.iconText}>{isPlaying ? icons.pause : icons.play}</Text>
         </Pressable>
-      )}
+      ) : null}
     </View>
   );
 }

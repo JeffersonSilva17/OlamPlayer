@@ -24,6 +24,13 @@ import TrackPlayer, { Event, RepeatMode } from "react-native-track-player";
 import { theme } from "../theme/theme";
 import { ScreenBackdrop } from "../components/ScreenBackdrop";
 import { icons } from "../theme/icons";
+import { AudioVisualizer } from "../components/AudioVisualizer";
+import {
+  RepeatIcon,
+  RepeatOneIcon,
+  ShareIcon,
+  ShuffleIcon,
+} from "../components/ActionIcons";
 
 type Props = NativeStackScreenProps<LibraryStackParamList, "Player">;
 
@@ -333,13 +340,21 @@ export function PlayerScreen({ route }: Props) {
     setShowQueueModal(true);
   };
 
-  const onPlayPauseVideo = () => {
-    setVideoPaused((prev) => !prev);
+  const onPlayPauseAudio = async () => {
+    if (state.isPlaying) {
+      await pause();
+      return;
+    }
+    const duration = state.durationMs ?? 0;
+    const position = state.positionMs ?? 0;
+    if (duration > 0 && position >= duration - 1000) {
+      await seekTo(0);
+    }
+    await play();
   };
 
-  const onFullscreen = () => {
-    videoRef.current?.presentFullscreenPlayer?.();
-    videoRef.current?.setFullScreen?.(true);
+  const onPlayPauseVideo = () => {
+    setVideoPaused((prev) => !prev);
   };
 
   if (item.mediaType === "video") {
@@ -400,7 +415,7 @@ export function PlayerScreen({ route }: Props) {
         />
         <View style={styles.modeRow}>
           <Pressable style={styles.modeButton} onPress={onShare}>
-            <Text style={[styles.modeText, styles.shareIcon]}>{icons.share}</Text>
+            <ShareIcon color={theme.colors.bg} size={18} />
           </Pressable>
           <Pressable
             style={[styles.modeButton, showVolume && styles.modeButtonActive]}
@@ -425,9 +440,6 @@ export function PlayerScreen({ route }: Props) {
             />
           </View>
         ) : null}
-        <Pressable style={styles.secondaryButton} onPress={onFullscreen}>
-          <Text style={styles.secondaryButtonText}>Tela cheia</Text>
-        </Pressable>
       </View>
     );
   }
@@ -435,6 +447,8 @@ export function PlayerScreen({ route }: Props) {
   return (
     <View style={styles.container}>
       <ScreenBackdrop />
+      <View style={styles.audioTopSpacer} />
+      <AudioVisualizer active={state.isPlaying} />
       <View style={styles.header}>
         <Text style={styles.title} numberOfLines={2} ellipsizeMode="tail">
           {currentAudioItem.displayName}
@@ -450,49 +464,68 @@ export function PlayerScreen({ route }: Props) {
         isPlaying={state.isPlaying}
         positionMs={state.positionMs}
         durationMs={state.durationMs}
-        onPlayPause={() => (state.isPlaying ? pause() : play())}
+        onPlayPause={onPlayPauseAudio}
         onSeek={seekTo}
         onPrev={onPrevAudio}
         onNext={onNextAudio}
         canPrev={canPrevAudio}
         canNext={canNextAudio}
+        showControls={false}
       />
-      <View style={styles.modeRow}>
+      <View style={styles.audioBottomSpacer} />
+      <View style={styles.audioControlsRow}>
         <Pressable
-          style={[styles.modeButton, isShuffle && styles.modeButtonActive]}
+          style={[styles.audioControlButton, isShuffle && styles.audioControlActive]}
           onPress={onToggleShuffle}
         >
-          <Text style={[styles.modeText, styles.shuffleIcon, isShuffle && styles.modeTextActive]}>
-            {icons.shuffle}
+          <ShuffleIcon
+            color={isShuffle ? theme.colors.surface : theme.colors.bg}
+            size={32}
+          />
+        </Pressable>
+        <Pressable
+          style={[
+            styles.audioControlButton,
+            !canPrevAudio && styles.audioControlDisabled,
+          ]}
+          onPress={onPrevAudio}
+          disabled={!canPrevAudio}
+        >
+          <Text style={styles.audioControlText}>{icons.prev}</Text>
+        </Pressable>
+        <Pressable style={styles.audioControlButton} onPress={onPlayPauseAudio}>
+          <Text style={styles.audioControlText}>
+            {state.isPlaying ? icons.pause : icons.play}
           </Text>
         </Pressable>
         <Pressable
           style={[
-            styles.modeButton,
-            (repeatAll || repeatOne) && styles.modeButtonActive,
+            styles.audioControlButton,
+            !canNextAudio && styles.audioControlDisabled,
+          ]}
+          onPress={onNextAudio}
+          disabled={!canNextAudio}
+        >
+          <Text style={styles.audioControlText}>{icons.next}</Text>
+        </Pressable>
+        <Pressable
+          style={[
+            styles.audioControlButton,
+            (repeatAll || repeatOne) && styles.audioControlActive,
           ]}
           onPress={onToggleRepeatCycle}
         >
-          <Text
-            style={[
-              styles.modeText,
-              styles.repeatIcon,
-              (repeatAll || repeatOne) && styles.modeTextActive,
-            ]}
-          >
-            {repeatOne ? icons.repeatOne : icons.repeat}
-          </Text>
-        </Pressable>
-        <Pressable
-          style={[styles.modeButton, showVolume && styles.modeButtonActive]}
-          onPress={() => setShowVolume((prev) => !prev)}
-        >
-          <Text style={[styles.modeText, showVolume && styles.modeTextActive]}>
-            {icons.volume}
-          </Text>
-        </Pressable>
-        <Pressable style={styles.modeButton} onPress={onShare}>
-          <Text style={[styles.modeText, styles.shareIcon]}>{icons.share}</Text>
+          {repeatOne ? (
+            <RepeatOneIcon
+              color={(repeatAll || repeatOne) ? theme.colors.surface : theme.colors.bg}
+              size={38}
+            />
+          ) : (
+            <RepeatIcon
+              color={(repeatAll || repeatOne) ? theme.colors.surface : theme.colors.bg}
+              size={38}
+            />
+          )}
         </Pressable>
       </View>
       {showVolume ? (
@@ -510,15 +543,28 @@ export function PlayerScreen({ route }: Props) {
         </View>
       ) : null}
       <View style={styles.fillSpacer} />
-      <Pressable style={styles.queuePeek} onPress={onOpenQueue}>
-        <View style={styles.queuePeekHandle} />
-        <Text style={styles.queuePeekText}>
-          {route.params.queueLabel ??
-            (baseAudioQueue.length > 1 ? "Fila atual" : "Reproducao atual")}
-          {" \u00B7 "}
-          {baseAudioQueue.length}
-        </Text>
-      </Pressable>
+      <View style={styles.queuePeekRow}>
+        <Pressable style={styles.queueSideButton} onPress={onShare}>
+          <ShareIcon color={theme.colors.bg} size={18} />
+        </Pressable>
+        <Pressable style={styles.queuePeek} onPress={onOpenQueue}>
+          <View style={styles.queuePeekHandle} />
+          <Text style={styles.queuePeekText}>
+            {route.params.queueLabel ??
+              (baseAudioQueue.length > 1 ? "Fila atual" : "Reproducao atual")}
+            {" \u00B7 "}
+            {baseAudioQueue.length}
+          </Text>
+        </Pressable>
+        <Pressable
+          style={[styles.queueSideButton, showVolume && styles.queueSideActive]}
+          onPress={() => setShowVolume((prev) => !prev)}
+        >
+          <Text style={[styles.modeText, showVolume && styles.modeTextActive]}>
+            {icons.volume}
+          </Text>
+        </Pressable>
+      </View>
       <Modal visible={showQueueModal} transparent animationType="slide">
         <Pressable style={styles.queueBackdrop} onPress={() => setShowQueueModal(false)}>
           <Pressable style={styles.queueSheet} onPress={() => {}}>
@@ -571,8 +617,13 @@ export function PlayerScreen({ route }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: theme.spacing.md,
+    paddingTop: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
+    paddingBottom: 0,
     backgroundColor: theme.colors.bg,
+  },
+  audioTopSpacer: {
+    height: theme.spacing.lg,
   },
   header: {
     minHeight: 56,
@@ -615,7 +666,43 @@ const styles = StyleSheet.create({
   modeRow: {
     marginTop: theme.spacing.sm,
     flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  audioControlsRow: {
+    marginTop: theme.spacing.sm,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     gap: theme.spacing.sm,
+  },
+  audioBottomSpacer: {
+    flex: 1,
+    maxHeight: 120,
+  },
+  audioControlButton: {
+    backgroundColor: theme.colors.brand,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  audioControlActive: {
+    backgroundColor: theme.colors.accent,
+  },
+  audioControlDisabled: {
+    backgroundColor: "#9FB0C4",
+  },
+  audioControlText: {
+    color: theme.colors.bg,
+    fontSize: 20,
+    fontWeight: "800",
+    fontFamily: theme.fonts.heading,
+    letterSpacing: 0.4,
+  },
+  audioControlTextActive: {
+    color: theme.colors.surface,
   },
   modeButton: {
     backgroundColor: theme.colors.brand,
@@ -697,24 +784,42 @@ const styles = StyleSheet.create({
     height: 32,
   },
   fillSpacer: {
-    flex: 1,
+    height: 0,
+  },
+  queuePeekRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
+  },
+  queueSideButton: {
+    backgroundColor: theme.colors.brand,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  queueSideActive: {
+    backgroundColor: theme.colors.accent,
   },
   queuePeek: {
-    marginTop: theme.spacing.sm,
+    flex: 1,
     backgroundColor: theme.colors.surface,
     borderRadius: theme.radius.lg,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    paddingVertical: 10,
+    paddingVertical: 6,
     paddingHorizontal: theme.spacing.md,
     alignItems: "center",
   },
   queuePeekHandle: {
-    width: 36,
-    height: 4,
+    width: 30,
+    height: 3,
     borderRadius: 2,
     backgroundColor: theme.colors.border,
-    marginBottom: 6,
+    marginBottom: 4,
   },
   queuePeekText: {
     color: theme.colors.textMuted,

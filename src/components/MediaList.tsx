@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { FlatList, View, Text, StyleSheet } from "react-native";
 import type { MediaItem } from "../models/media";
 import { MediaCard } from "./MediaCard";
@@ -16,6 +16,9 @@ type Props = {
   onToggleSelect?: (item: MediaItem) => void;
   onLongPressSelect?: (item: MediaItem) => void;
   query?: string;
+  playingUri?: string;
+  isPlaying?: boolean;
+  compact?: boolean;
 };
 
 export function MediaList({
@@ -30,8 +33,12 @@ export function MediaList({
   onToggleSelect,
   onLongPressSelect,
   query,
+  playingUri,
+  isPlaying = false,
+  compact = false,
 }: Props) {
   const selectedSet = new Set(selectedIds);
+  const [isScrolling, setIsScrolling] = useState(false);
   if (items.length === 0) {
     return (
       <View style={styles.empty}>
@@ -45,6 +52,10 @@ export function MediaList({
       data={items}
       keyExtractor={(item) => item.id}
       contentContainerStyle={styles.listContent}
+      onScrollBeginDrag={() => setIsScrolling(true)}
+      onScrollEndDrag={() => setIsScrolling(false)}
+      onMomentumScrollBegin={() => setIsScrolling(true)}
+      onMomentumScrollEnd={() => setIsScrolling(false)}
       renderItem={({ item }) => (
         <MediaCard
           item={item}
@@ -58,6 +69,10 @@ export function MediaList({
           onToggleSelect={onToggleSelect}
           onLongPressSelect={onLongPressSelect}
           query={query}
+          isCurrent={playingUri ? item.uri === playingUri : false}
+          isPlaying={isPlaying}
+          isScrolling={isScrolling}
+          compact={compact}
         />
       )}
     />

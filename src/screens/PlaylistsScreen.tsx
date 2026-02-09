@@ -9,7 +9,8 @@ import { PlaylistRepositorySqlite } from "../data/repositories/PlaylistRepositor
 import { theme } from "../theme/theme";
 import { ScreenBackdrop } from "../components/ScreenBackdrop";
 import { icons } from "../theme/icons";
-import { StackedNoteIcon } from "../components/StackedNoteIcon";
+import { ShuffleIcon } from "../components/ActionIcons";
+import { AudioTabIcon, PlaylistTabIcon, VideoTabIcon } from "../components/TabIcons";
 
 type Navigation = NativeStackNavigationProp<PlaylistsStackParamList, "Playlists">;
 
@@ -61,17 +62,13 @@ export function PlaylistsScreen() {
           style={[styles.tab, mediaType === "audio" && styles.tabActive]}
           onPress={() => setMediaType("audio")}
         >
-          <Text style={[styles.tabIcon, mediaType === "audio" && styles.tabIconActive]}>
-            {icons.audio}
-          </Text>
+          <AudioTabIcon focused={mediaType === "audio"} />
         </Pressable>
         <Pressable
           style={[styles.tab, mediaType === "video" && styles.tabActive]}
           onPress={() => setMediaType("video")}
         >
-          <Text style={[styles.tabIcon, mediaType === "video" && styles.tabIconActive]}>
-            {icons.video}
-          </Text>
+          <VideoTabIcon focused={mediaType === "video"} />
         </Pressable>
       </View>
       <View style={styles.inline}>
@@ -88,7 +85,7 @@ export function PlaylistsScreen() {
           onPress={handleCreate}
         >
           <View style={styles.createIconWrap}>
-            <StackedNoteIcon color={theme.colors.accent} size={12} />
+            <PlaylistTabIcon focused />
             <Text style={styles.createPlus}>+</Text>
           </View>
         </Pressable>
@@ -114,7 +111,7 @@ export function PlaylistsScreen() {
                 style={styles.iconButton}
                 onPress={() => playPlaylist(item.id, item.name, true)}
               >
-                <Text style={[styles.iconText, styles.shuffleIcon]}>{icons.shuffle}</Text>
+                <ShuffleIcon color={theme.colors.bg} size={18} />
               </Pressable>
               <Pressable
                 style={styles.iconButton}
@@ -200,7 +197,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 4,
+    gap: 6,
   },
   createPlus: {
     color: theme.colors.accent,

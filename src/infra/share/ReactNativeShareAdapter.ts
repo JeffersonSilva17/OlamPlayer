@@ -29,9 +29,37 @@ async function ensureShareCacheDir(): Promise<string> {
 async function materializeContentUri(uri: string, fileName: string): Promise<string> {
   const dir = await ensureShareCacheDir();
   const safeName = sanitizeFileName(fileName || "arquivo");
-  const targetPath = `${dir}/${Date.now()}-${safeName}`;
+  const targetPath = `${dir}/${safeName}`;
+  const exists = await RNFS.exists(targetPath);
+  if (exists) {
+    await RNFS.unlink(targetPath);
+  }
   await RNFS.copyFile(uri, targetPath);
   return `file://${targetPath}`;
+}
+
+async function normalizeShareName(
+  shareUrl: string,
+  fileName: string,
+): Promise<string> {
+  if (!shareUrl.startsWith("file://")) return shareUrl;
+  const rawPath = shareUrl.replace("file://", "");
+  const parts = rawPath.split("/");
+  const baseName = parts[parts.length - 1] ?? "";
+  const safeName = sanitizeFileName(fileName || "arquivo");
+  const targetPath = `${parts.slice(0, -1).join("/")}/${safeName}`;
+  const hasTimestamp = /^\d{6,}-/.test(baseName);
+  if (!hasTimestamp || rawPath === targetPath) return shareUrl;
+  try {
+    const exists = await RNFS.exists(targetPath);
+    if (exists) {
+      await RNFS.unlink(targetPath);
+    }
+    await RNFS.moveFile(rawPath, targetPath);
+    return `file://${targetPath}`;
+  } catch (error) {
+    return shareUrl;
+  }
 }
 
 export const reactNativeShareAdapter: ShareAdapter = {
@@ -46,8 +74,10 @@ export const reactNativeShareAdapter: ShareAdapter = {
       try {
         if (androidSafService.copyToCache) {
           shareUrl = await androidSafService.copyToCache(normalized, params.title ?? "arquivo");
+          shareUrl = await normalizeShareName(shareUrl, params.title ?? "arquivo");
         } else {
           shareUrl = await materializeContentUri(normalized, params.title ?? "arquivo");
+          shareUrl = await normalizeShareName(shareUrl, params.title ?? "arquivo");
         }
       } catch (error) {
         console.warn("Falha ao copiar arquivo para compartilhar", error);

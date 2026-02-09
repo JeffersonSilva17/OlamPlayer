@@ -28,7 +28,7 @@ type MediaStoreState = {
   ignoredFolders: string[];
   loadMedia: (mediaType: MediaType) => Promise<void>;
   setQuery: (value: string) => void;
-  setSort: (sort: "name" | "dateAdded") => void;
+  setSort: (sort: "name" | "dateAdded", order?: "asc" | "desc") => void;
   addFiles: (accept: ("audio" | "video")[]) => Promise<number>;
   addExternalFiles: (files: PickedFile[]) => Promise<number>;
   addFolder: () => Promise<void>;
@@ -89,10 +89,10 @@ export const useMediaStore = create<MediaStoreState>((set, get) => ({
   setQuery(value) {
     set({ query: value });
   },
-  setSort(sort) {
+  setSort(sort, order) {
     set({
       sort,
-      order: sort === "dateAdded" ? "desc" : "asc",
+      order: order ?? (sort === "dateAdded" ? "desc" : "asc"),
     });
   },
   async addFiles(accept) {

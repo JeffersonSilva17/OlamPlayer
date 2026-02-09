@@ -17,6 +17,8 @@ import { MediaRepositorySqlite } from "../data/repositories/MediaRepositorySqlit
 import type { MediaItem } from "../models/media";
 import { theme } from "../theme/theme";
 import { icons } from "../theme/icons";
+import { ShareIcon } from "./ActionIcons";
+import { reactNativeShareAdapter } from "../infra/share/ReactNativeShareAdapter";
 
 type TrackInfo = {
   title?: string;
@@ -72,7 +74,7 @@ export function MiniPlayer() {
     return () => sub.remove();
   }, [refreshTrack]);
 
-  const onOpenQueue = async () => {
+  const resolveCurrentItem = useCallback(async (): Promise<MediaItem | null> => {
     const queueItems = await loadQueueItems();
     const active = await TrackPlayer.getActiveTrack();
     const activeId = active?.id ? `${active.id}` : undefined;
@@ -82,6 +84,12 @@ export function MiniPlayer() {
       queueItems.find((entry) => entry.id === activeId) ??
       queueItems.find((entry) => entry.uri === activeUrl) ??
       fallbackItem;
+    return currentItem ?? null;
+  }, [current, loadQueueItems]);
+
+  const onOpenQueue = async () => {
+    const queueItems = await loadQueueItems();
+    const currentItem = await resolveCurrentItem();
     if (!currentItem) return;
     const queueToUse = queueItems.length > 0 ? queueItems : [currentItem];
     setQueueItems(queueToUse);
@@ -91,14 +99,7 @@ export function MiniPlayer() {
 
   const onOpenPlayer = async () => {
     const queueItems = await loadQueueItems();
-    const active = await TrackPlayer.getActiveTrack();
-    const activeId = active?.id ? `${active.id}` : undefined;
-    const activeUrl = active?.url;
-    const fallbackItem = current ?? queueItems[0];
-    const currentItem =
-      queueItems.find((entry) => entry.id === activeId) ??
-      queueItems.find((entry) => entry.uri === activeUrl) ??
-      fallbackItem;
+    const currentItem = await resolveCurrentItem();
     if (!currentItem) return;
     const queueToUse = queueItems.length > 0 ? queueItems : [currentItem];
     const targetTab = currentItem.mediaType === "video" ? "Video" : "Audio";
@@ -150,8 +151,35 @@ export function MiniPlayer() {
     }
   };
 
+  const onShare = async () => {
+    const currentItem = await resolveCurrentItem();
+    if (!currentItem) return;
+    try {
+      await reactNativeShareAdapter.shareFile({
+        uri: currentItem.uri,
+        mimeType: currentItem.mimeType,
+        title: currentItem.displayName,
+      });
+    } catch (error) {
+      console.warn("Falha ao compartilhar", error);
+    }
+  };
+
+  const onToggleVolume = async () => {
+    try {
+      const currentVolume = await TrackPlayer.getVolume();
+      const nextVolume = currentVolume >= 0.8 ? 0.4 : 1;
+      await TrackPlayer.setVolume(nextVolume);
+    } catch (error) {
+      console.warn("Falha ao ajustar volume", error);
+    }
+  };
+
   return (
     <View style={[styles.container, { bottom: 56 + insets.bottom }]}>
+      <Pressable style={styles.sideButton} onPress={onShare}>
+        <ShareIcon color={theme.colors.bg} size={18} />
+      </Pressable>
       <Pressable style={styles.info} onPress={onOpenPlayer} onLongPress={onOpenQueue}>
         <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">
           {track.title ?? track.url ?? "Reproduzindo"}
@@ -173,6 +201,9 @@ export function MiniPlayer() {
           <Text style={styles.controlText}>{icons.next}</Text>
         </Pressable>
       </View>
+      <Pressable style={styles.sideButton} onPress={onToggleVolume}>
+        <Text style={styles.sideText}>{icons.volume}</Text>
+      </Pressable>
       <Modal visible={showQueue} transparent animationType="slide">
         <View style={styles.modalBackdrop}>
           <View style={[styles.modalSheet, { transform: [{ translateY: dragOffset }] }]}>
@@ -228,14 +259,28 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    height: 64,
+    height: 54,
     backgroundColor: theme.colors.surface,
     borderTopWidth: 1,
     borderColor: theme.colors.border,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: theme.spacing.md,
+    paddingHorizontal: theme.spacing.sm,
     ...theme.shadow.card,
+  },
+  sideButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: theme.colors.brand,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sideText: {
+    color: theme.colors.bg,
+    fontSize: 16,
+    fontWeight: "800",
+    fontFamily: theme.fonts.body,
   },
   info: {
     flex: 1,
@@ -249,17 +294,21 @@ const styles = StyleSheet.create({
   },
   controls: {
     flexDirection: "row",
-    gap: theme.spacing.xs,
+    gap: 6,
+    marginLeft: theme.spacing.xs,
+    marginRight: theme.spacing.xs,
   },
   controlButton: {
     backgroundColor: theme.colors.brand,
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-    borderRadius: theme.radius.md,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
   },
   controlText: {
     color: theme.colors.bg,
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: "800",
     fontFamily: theme.fonts.body,
   },

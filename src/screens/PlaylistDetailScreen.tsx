@@ -9,6 +9,7 @@ import { useNavigation } from "@react-navigation/native";
 import { theme } from "../theme/theme";
 import { ScreenBackdrop } from "../components/ScreenBackdrop";
 import { icons } from "../theme/icons";
+import { ShuffleIcon } from "../components/ActionIcons";
 
 type Props = NativeStackScreenProps<PlaylistsStackParamList, "PlaylistDetail">;
 const mediaRepository = new MediaRepositorySqlite();
@@ -84,8 +85,8 @@ export function PlaylistDetailScreen({ route }: Props) {
       <ScreenBackdrop />
       <Text style={styles.title}>{playlistName}</Text>
       <View style={styles.playRow}>
-        <Pressable style={styles.button} onPress={playAll}>
-          <Text style={styles.buttonText}>Tocar playlist</Text>
+        <Pressable style={styles.iconButton} onPress={playAll}>
+          <Text style={styles.iconText}>{icons.play}</Text>
         </Pressable>
         <Pressable
           style={styles.iconButton}
@@ -107,7 +108,7 @@ export function PlaylistDetailScreen({ route }: Props) {
               );
           }}
         >
-          <Text style={styles.iconText}>{icons.shuffle}</Text>
+          <ShuffleIcon color={theme.colors.bg} size={20} />
         </Pressable>
       </View>
       <View style={styles.tabs}>
@@ -116,7 +117,7 @@ export function PlaylistDetailScreen({ route }: Props) {
           onPress={() => setActiveTab("items")}
         >
           <Text style={[styles.tabText, activeTab === "items" && styles.tabTextActive]}>
-            Itens
+            Faixas
           </Text>
         </Pressable>
         <Pressable
@@ -136,18 +137,6 @@ export function PlaylistDetailScreen({ route }: Props) {
             <View style={styles.row}>
               <Text style={styles.itemName}>{item.displayName}</Text>
               <View style={styles.rowActions}>
-                <Pressable
-                  style={styles.orderButton}
-                  onPress={() => moveItem(index, index - 1)}
-                >
-                  <Text style={styles.orderText}>Down</Text>
-                </Pressable>
-                <Pressable
-                  style={styles.orderButton}
-                  onPress={() => moveItem(index, index + 1)}
-                >
-                  <Text style={styles.orderText}>Down</Text>
-                </Pressable>
                 <Pressable onPress={() => removeFromPlaylist(playlistId, item.id)}>
                   <Text style={styles.remove}>Remover</Text>
                 </Pressable>
@@ -173,9 +162,22 @@ export function PlaylistDetailScreen({ route }: Props) {
             renderItem={({ item }) => (
               <View style={styles.row}>
                 <Text style={styles.itemName}>{item.displayName}</Text>
-                <Pressable onPress={() => addToPlaylist(playlistId, item.id)}>
-                  <Text style={styles.add}>Adicionar</Text>
-                </Pressable>
+                {(() => {
+                  const isAdded = items.some((entry) => entry.id === item.id);
+                  return (
+                    <Pressable
+                      style={[styles.addButton, isAdded && styles.addButtonActive]}
+                      onPress={() => {
+                        if (!isAdded) addToPlaylist(playlistId, item.id);
+                      }}
+                      disabled={isAdded}
+                    >
+                      <Text style={[styles.addText, isAdded && styles.addTextActive]}>
+                        {isAdded ? "Adicionado" : "Adicionar"}
+                      </Text>
+                    </Pressable>
+                  );
+                })()}
               </View>
             )}
           />
@@ -253,26 +255,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: theme.spacing.sm,
   },
-  orderButton: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderWidth: 1,
-    borderColor: theme.colors.brand,
-    borderRadius: theme.radius.md,
-    backgroundColor: theme.colors.surface,
-  },
-  orderText: {
-    color: theme.colors.brand,
-    fontWeight: "700",
-    fontFamily: theme.fonts.body,
-  },
   remove: {
     color: theme.colors.danger,
     fontFamily: theme.fonts.body,
   },
-  add: {
+  addButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.brand,
+  },
+  addButtonActive: {
+    backgroundColor: theme.colors.accent,
+    borderColor: theme.colors.accent,
+  },
+  addText: {
     color: theme.colors.brand,
     fontFamily: theme.fonts.body,
+  },
+  addTextActive: {
+    color: theme.colors.surface,
+    fontWeight: "700",
   },
   playRow: {
     flexDirection: "row",

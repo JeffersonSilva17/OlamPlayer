@@ -103,7 +103,10 @@ class AndroidSafModule(reactContext: ReactApplicationContext) :
         if (!cacheDir.exists()) {
           cacheDir.mkdirs()
         }
-        val target = File(cacheDir, "${System.currentTimeMillis()}-$finalName")
+        val target = File(cacheDir, finalName)
+        if (target.exists()) {
+          target.delete()
+        }
         resolver.openInputStream(uri)?.use { input ->
           FileOutputStream(target).use { output ->
             input.copyTo(output)

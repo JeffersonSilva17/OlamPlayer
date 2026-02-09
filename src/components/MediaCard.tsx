@@ -2,6 +2,9 @@ import React from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
 import type { MediaItem } from "../models/media";
 import { theme } from "../theme/theme";
+import { icons } from "../theme/icons";
+import { MiniEqualizer } from "./MiniEqualizer";
+import { MarqueeText } from "./MarqueeText";
 
 type Props = {
   item: MediaItem;
@@ -15,6 +18,10 @@ type Props = {
   selectionMode?: boolean;
   isSelected?: boolean;
   query?: string;
+  isCurrent?: boolean;
+  isPlaying?: boolean;
+  isScrolling?: boolean;
+  compact?: boolean;
 };
 
 export function MediaCard({
@@ -29,11 +36,27 @@ export function MediaCard({
   selectionMode = false,
   isSelected = false,
   query,
+  isCurrent = false,
+  isPlaying = false,
+  isScrolling = false,
+  compact = false,
 }: Props) {
   const highlightParts = buildHighlightParts(item.displayName, query);
+  const titleParts = highlightParts.map((part, index) => (
+    <Text
+      key={`${item.id}-h-${index}`}
+      style={part.highlight ? styles.titleHighlight : undefined}
+    >
+      {part.text}
+    </Text>
+  ));
   return (
     <Pressable
-      style={[styles.card, isSelected && styles.cardSelected]}
+      style={[
+        styles.card,
+        compact && styles.cardCompact,
+        isSelected && styles.cardSelected,
+      ]}
       onPress={() => {
         if (selectionMode) {
           onToggleSelect?.(item);
@@ -44,19 +67,22 @@ export function MediaCard({
       onLongPress={() => onLongPressSelect?.(item)}
     >
       <View style={styles.info}>
-        <Text style={styles.title}>
-          {highlightParts.map((part, index) => (
-            <Text
-              key={`${item.id}-h-${index}`}
-              style={part.highlight ? styles.titleHighlight : undefined}
-            >
-              {part.text}
-            </Text>
-          ))}
-        </Text>
-        <Text style={styles.subtitle}>
-          {item.mediaType.toUpperCase()} - {item.isAvailable ? "Disponivel" : "Indisponivel"}
-        </Text>
+        <View style={styles.titleRow}>
+          {isCurrent && isPlaying ? (
+            <MiniEqualizer active />
+          ) : (
+            <View style={styles.trebleBadge}>
+              <Text style={styles.trebleIcon}>{icons.treble}</Text>
+            </View>
+          )}
+          <MarqueeText
+            active
+            text={item.displayName}
+            textStyle={styles.title}
+          >
+            {titleParts}
+          </MarqueeText>
+        </View>
       </View>
     </Pressable>
   );
@@ -72,24 +98,54 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     ...theme.shadow.card,
   },
+  cardCompact: {
+    marginBottom: 0,
+    paddingVertical: 8,
+    paddingHorizontal: 0,
+    backgroundColor: "transparent",
+    borderWidth: 0,
+    borderColor: "transparent",
+    borderRadius: 0,
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+  },
   cardSelected: {
     borderColor: theme.colors.brand,
     backgroundColor: theme.colors.surfaceAlt,
   },
   info: {
-    marginBottom: 8,
+    marginBottom: 0,
+  },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  trebleBadge: {
+    width: 26,
+    height: 26,
+    borderRadius: 6,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  trebleIcon: {
+    color: theme.colors.accent,
+    fontSize: 14,
+    fontWeight: "700",
+    fontFamily: theme.fonts.body,
   },
   title: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "600",
     color: theme.colors.text,
     fontFamily: theme.fonts.heading,
-  },
-  subtitle: {
-    fontSize: 12,
-    color: theme.colors.textMuted,
-    marginTop: 4,
-    fontFamily: theme.fonts.body,
   },
   titleHighlight: {
     backgroundColor: theme.colors.highlight,

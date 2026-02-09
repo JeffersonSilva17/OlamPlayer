@@ -1,7 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { theme } from "../theme/theme";
-import { icons } from "../theme/icons";
 
 type Props = {
   color?: string;
@@ -10,6 +9,7 @@ type Props = {
 
 export function StackedNoteIcon({ color = theme.colors.brand, size = 12 }: Props) {
   const offset = Math.max(2, Math.round(size * 0.2));
+  const noteSymbol = String.fromCharCode(0x266a);
   return (
     <View style={[styles.container, { width: size + offset * 2, height: size + offset * 2 }]}>
       <Text
@@ -24,7 +24,7 @@ export function StackedNoteIcon({ color = theme.colors.brand, size = 12 }: Props
           },
         ]}
       >
-        {icons.playlist}
+        {noteSymbol}
       </Text>
       <Text
         style={[
@@ -38,7 +38,7 @@ export function StackedNoteIcon({ color = theme.colors.brand, size = 12 }: Props
           },
         ]}
       >
-        {icons.playlist}
+        {noteSymbol}
       </Text>
       <Text
         style={[
@@ -52,7 +52,7 @@ export function StackedNoteIcon({ color = theme.colors.brand, size = 12 }: Props
           },
         ]}
       >
-        {icons.playlist}
+        {noteSymbol}
       </Text>
     </View>
   );
