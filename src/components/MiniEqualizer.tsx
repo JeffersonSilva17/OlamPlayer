@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo } from "react";
 import { Animated, Easing, StyleSheet, View } from "react-native";
-import { theme } from "../theme/theme";
+import { useTheme } from "../theme/ThemeProvider";
+import type { AppTheme } from "../theme/theme";
 
 type Props = {
   active?: boolean;
@@ -10,6 +11,8 @@ const BAR_COUNT = 5;
 const BAR_HEIGHT = 18;
 
 export function MiniEqualizer({ active = true }: Props) {
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const bars = useMemo(
     () => Array.from({ length: BAR_COUNT }, () => new Animated.Value(0.3)),
     [],
@@ -60,24 +63,25 @@ export function MiniEqualizer({ active = true }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    width: 22,
-    height: BAR_HEIGHT,
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "center",
-    gap: 2,
-    marginRight: 8,
-  },
-  barWrap: {
-    height: BAR_HEIGHT,
-    justifyContent: "flex-end",
-  },
-  bar: {
-    width: 3,
-    height: BAR_HEIGHT,
-    borderRadius: 2,
-    backgroundColor: theme.colors.accent,
-  },
-});
+const createStyles = (theme: AppTheme) =>
+  StyleSheet.create({
+    container: {
+      width: 22,
+      height: BAR_HEIGHT,
+      flexDirection: "row",
+      alignItems: "flex-end",
+      justifyContent: "center",
+      gap: 2,
+      marginRight: 8,
+    },
+    barWrap: {
+      height: BAR_HEIGHT,
+      justifyContent: "flex-end",
+    },
+    bar: {
+      width: 3,
+      height: BAR_HEIGHT,
+      borderRadius: 2,
+      backgroundColor: theme.colors.accent,
+    },
+  });

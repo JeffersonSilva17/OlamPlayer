@@ -1,5 +1,5 @@
 import "react-native-get-random-values";
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import { StatusBar, StyleSheet, Text, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { NavigationContainer, createNavigationContainerRef } from "@react-navigation/native";
@@ -22,9 +22,11 @@ import { usePlayerStore } from "./src/stores/playerStore";
 import { useMediaStore } from "./src/stores/mediaStore";
 import { subscribeOpenFiles } from "./src/infra/ios/OpenFileModule";
 import { MiniPlayer } from "./src/components/MiniPlayer";
-import { theme } from "./src/theme/theme";
 import { icons } from "./src/theme/icons";
 import { AudioTabIcon, PlaylistTabIcon, VideoTabIcon } from "./src/components/TabIcons";
+import { ThemeProvider, useTheme } from "./src/theme/ThemeProvider";
+import type { AppTheme } from "./src/theme/theme";
+import { useSettingsStore } from "./src/stores/settingsStore";
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 const LibraryStack = createNativeStackNavigator<LibraryStackParamList>();
@@ -81,6 +83,9 @@ function SettingsStackScreen() {
 function AppShell() {
   const { init } = usePlayerStore();
   const { addExternalFiles } = useMediaStore();
+  const { themeMode } = useSettingsStore();
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [currentRoute, setCurrentRoute] = React.useState<string | null>(null);
   const insets = useSafeAreaInsets();
   useEffect(() => {
@@ -100,7 +105,10 @@ function AppShell() {
 
   return (
     <>
-      <StatusBar barStyle="light-content" backgroundColor={theme.colors.bg} />
+      <StatusBar
+        barStyle={themeMode === "light" ? "dark-content" : "light-content"}
+        backgroundColor={theme.colors.bg}
+      />
       <NavigationContainer
         ref={navigationRef}
         onReady={() => {
@@ -184,38 +192,41 @@ function AppShell() {
 function App() {
   return (
     <SafeAreaProvider>
-      <AppShell />
+      <ThemeProvider>
+        <AppShell />
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.bg,
-  },
-  appHeader: {
-    backgroundColor: theme.colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
-  },
-  appHeaderText: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: theme.colors.text,
-    fontFamily: theme.fonts.heading,
-    letterSpacing: 0.4,
-  },
-  tabIcon: {
-    fontSize: 18,
-    fontFamily: theme.fonts.body,
-  },
-  tabIconActive: {
-    textShadowColor: theme.colors.accent,
-    textShadowRadius: 6,
-  },
-});
+const createStyles = (theme: AppTheme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.bg,
+    },
+    appHeader: {
+      backgroundColor: theme.colors.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+      paddingHorizontal: theme.spacing.lg,
+      paddingVertical: theme.spacing.md,
+    },
+    appHeaderText: {
+      fontSize: 18,
+      fontWeight: "700",
+      color: theme.colors.text,
+      fontFamily: theme.fonts.heading,
+      letterSpacing: 0.4,
+    },
+    tabIcon: {
+      fontSize: 18,
+      fontFamily: theme.fonts.body,
+    },
+    tabIconActive: {
+      textShadowColor: theme.colors.accent,
+      textShadowRadius: 6,
+    },
+  });
 
 export default App;

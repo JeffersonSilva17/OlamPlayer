@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, TextInput, Pressable, FlatList, StyleSheet, Alert } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -6,17 +6,20 @@ import type { PlaylistsStackParamList } from "../navigation/types";
 import { usePlaylistStore } from "../stores/playlistStore";
 import type { MediaType } from "../models/media";
 import { PlaylistRepositorySqlite } from "../data/repositories/PlaylistRepositorySqlite";
-import { theme } from "../theme/theme";
 import { ScreenBackdrop } from "../components/ScreenBackdrop";
 import { icons } from "../theme/icons";
 import { ShuffleIcon } from "../components/ActionIcons";
 import { AudioTabIcon, PlaylistTabIcon, VideoTabIcon } from "../components/TabIcons";
+import { useTheme } from "../theme/ThemeProvider";
+import type { AppTheme } from "../theme/theme";
 
 type Navigation = NativeStackNavigationProp<PlaylistsStackParamList, "Playlists">;
 
 const repository = new PlaylistRepositorySqlite();
 
 export function PlaylistsScreen() {
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const navigation = useNavigation<Navigation>();
   const { playlists, loadPlaylists, createPlaylist, deletePlaylist } = usePlaylistStore();
   const [name, setName] = useState("");
@@ -130,7 +133,8 @@ export function PlaylistsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) =>
+  StyleSheet.create({
   container: {
     flex: 1,
     padding: theme.spacing.md,
@@ -252,4 +256,4 @@ const styles = StyleSheet.create({
   shuffleIcon: {
     fontSize: 22,
   },
-});
+  });

@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { FlatList, View, Text, StyleSheet } from "react-native";
 import type { MediaItem } from "../models/media";
 import { MediaCard } from "./MediaCard";
-import { theme } from "../theme/theme";
+import { useTheme } from "../theme/ThemeProvider";
+import type { AppTheme } from "../theme/theme";
 
 type Props = {
   items: MediaItem[];
@@ -37,6 +38,8 @@ export function MediaList({
   isPlaying = false,
   compact = false,
 }: Props) {
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const selectedSet = new Set(selectedIds);
   const [isScrolling, setIsScrolling] = useState(false);
   if (items.length === 0) {
@@ -79,16 +82,17 @@ export function MediaList({
   );
 }
 
-const styles = StyleSheet.create({
-  empty: {
-    padding: 24,
-    alignItems: "center",
-  },
-  emptyText: {
-    color: theme.colors.textMuted,
-    fontFamily: theme.fonts.body,
-  },
-  listContent: {
-    paddingBottom: 140,
-  },
-});
+const createStyles = (theme: AppTheme) =>
+  StyleSheet.create({
+    empty: {
+      padding: 24,
+      alignItems: "center",
+    },
+    emptyText: {
+      color: theme.colors.textMuted,
+      fontFamily: theme.fonts.body,
+    },
+    listContent: {
+      paddingBottom: 140,
+    },
+  });

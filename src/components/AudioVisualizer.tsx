@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo } from "react";
 import { Animated, Easing, StyleSheet, View } from "react-native";
-import { theme } from "../theme/theme";
+import { useTheme } from "../theme/ThemeProvider";
+import type { AppTheme } from "../theme/theme";
 
 type Props = {
   active?: boolean;
@@ -11,6 +12,8 @@ const FLOAT_COUNT = 8;
 const BAR_HEIGHT = 64;
 
 export function AudioVisualizer({ active = true }: Props) {
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const barProfiles = useMemo(
     () =>
       Array.from({ length: BAR_COUNT }, (_, index) => {
@@ -155,69 +158,71 @@ export function AudioVisualizer({ active = true }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    height: 200,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: theme.spacing.sm,
-    borderRadius: theme.radius.xl,
-    overflow: "hidden",
-  },
-  glow: {
-    position: "absolute",
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    backgroundColor: "#1D2A4A",
-    opacity: 0.7,
-  },
-  glowInner: {
-    position: "absolute",
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: theme.colors.surfaceAlt,
-    opacity: 0.6,
-  },
-  waveRow: {
-    position: "absolute",
-    height: 70,
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "center",
-    gap: 3,
-    bottom: 4,
-  },
-  barWrap: {
-    height: BAR_HEIGHT,
-    justifyContent: "flex-end",
-    alignItems: "center",
-  },
-  bar: {
-    width: 4,
-    height: BAR_HEIGHT,
-    borderRadius: 2,
-    backgroundColor: theme.colors.accent,
-    opacity: 0.9,
-  },
-  baseLine: {
-    position: "absolute",
-    left: 28,
-    right: 28,
-    height: 2,
-    borderRadius: 2,
-    backgroundColor: theme.colors.accent,
-    opacity: 0.2,
-    bottom: 4,
-  },
-  float: {
-    position: "absolute",
-    width: 12,
-    height: 12,
-    borderRadius: 3,
-    borderWidth: 1,
-    borderColor: theme.colors.accent,
-    backgroundColor: "rgba(34, 192, 255, 0.15)",
-  },
-});
+const createStyles = (theme: AppTheme) =>
+  StyleSheet.create({
+    container: {
+      height: 200,
+      justifyContent: "center",
+      alignItems: "center",
+      marginBottom: theme.spacing.sm,
+      borderRadius: theme.radius.xl,
+      overflow: "hidden",
+    },
+    glow: {
+      position: "absolute",
+      width: 220,
+      height: 220,
+      borderRadius: 110,
+      backgroundColor: theme.colors.brandDark,
+      opacity: 0.35,
+    },
+    glowInner: {
+      position: "absolute",
+      width: 140,
+      height: 140,
+      borderRadius: 70,
+      backgroundColor: theme.colors.surfaceAlt,
+      opacity: 0.6,
+    },
+    waveRow: {
+      position: "absolute",
+      height: 70,
+      flexDirection: "row",
+      alignItems: "flex-end",
+      justifyContent: "center",
+      gap: 3,
+      bottom: 4,
+    },
+    barWrap: {
+      height: BAR_HEIGHT,
+      justifyContent: "flex-end",
+      alignItems: "center",
+    },
+    bar: {
+      width: 4,
+      height: BAR_HEIGHT,
+      borderRadius: 2,
+      backgroundColor: theme.colors.accent,
+      opacity: 0.9,
+    },
+    baseLine: {
+      position: "absolute",
+      left: 28,
+      right: 28,
+      height: 2,
+      borderRadius: 2,
+      backgroundColor: theme.colors.accent,
+      opacity: 0.2,
+      bottom: 4,
+    },
+    float: {
+      position: "absolute",
+      width: 12,
+      height: 12,
+      borderRadius: 3,
+      borderWidth: 1,
+      borderColor: theme.colors.accent,
+      backgroundColor: theme.colors.accent,
+      opacity: 0.18,
+    },
+  });

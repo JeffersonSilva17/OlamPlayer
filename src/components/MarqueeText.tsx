@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Easing, StyleSheet, Text, View } from "react-native";
-import { theme } from "../theme/theme";
+import { useTheme } from "../theme/ThemeProvider";
+import type { AppTheme } from "../theme/theme";
 
 type Props = {
   active?: boolean;
@@ -17,6 +18,8 @@ export function MarqueeText({
   textStyle,
   containerStyle,
 }: Props) {
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const translateX = useRef(new Animated.Value(0)).current;
   const [containerWidth, setContainerWidth] = useState(0);
   const fontSize = useMemo(() => {
@@ -93,18 +96,19 @@ export function MarqueeText({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    overflow: "hidden",
-    flex: 1,
-  },
-  animatedRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  text: {
-    color: theme.colors.text,
-    fontFamily: theme.fonts.heading,
-    alignSelf: "flex-start",
-  },
-});
+const createStyles = (theme: AppTheme) =>
+  StyleSheet.create({
+    container: {
+      overflow: "hidden",
+      flex: 1,
+    },
+    animatedRow: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    text: {
+      color: theme.colors.text,
+      fontFamily: theme.fonts.heading,
+      alignSelf: "flex-start",
+    },
+  });

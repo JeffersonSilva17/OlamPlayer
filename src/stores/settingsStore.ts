@@ -11,6 +11,9 @@ type SettingsStoreState = {
   setAutoPlayEnabled: (enabled: boolean) => Promise<void>;
   setAutoPlayMinMs: (valueMs: number) => Promise<void>;
   setAutoPlayMaxMs: (valueMs: number) => Promise<void>;
+  themeMode: "dark" | "light";
+  loadThemeMode: () => Promise<void>;
+  setThemeMode: (mode: "dark" | "light") => Promise<void>;
 };
 
 const repository = new SettingsRepositorySqlite();
@@ -20,6 +23,7 @@ export const useSettingsStore = create<SettingsStoreState>((set) => ({
   autoPlayEnabled: false,
   autoPlayMinMs: 0,
   autoPlayMaxMs: 8 * 60 * 1000,
+  themeMode: "dark",
   async clearLibrary() {
     set({ clearing: true });
     try {
@@ -62,6 +66,22 @@ export const useSettingsStore = create<SettingsStoreState>((set) => ({
       await repository.setAutoPlayMaxMs(valueMs);
     } catch (error) {
       console.warn("Falha ao salvar auto play", error);
+    }
+  },
+  async loadThemeMode() {
+    try {
+      const mode = await repository.getThemeMode();
+      set({ themeMode: mode });
+    } catch (error) {
+      console.warn("Falha ao carregar tema", error);
+    }
+  },
+  async setThemeMode(mode) {
+    set({ themeMode: mode });
+    try {
+      await repository.setThemeMode(mode);
+    } catch (error) {
+      console.warn("Falha ao salvar tema", error);
     }
   },
 }));

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -21,7 +21,6 @@ import { MediaRepositorySqlite } from "../data/repositories/MediaRepositorySqlit
 import { incrementPlaybackStats, updateMediaDuration } from "../domain/playerUseCases";
 import { playQueue } from "../infra/player/playbackQueue";
 import TrackPlayer, { Event, RepeatMode } from "react-native-track-player";
-import { theme } from "../theme/theme";
 import { ScreenBackdrop } from "../components/ScreenBackdrop";
 import { icons } from "../theme/icons";
 import { AudioVisualizer } from "../components/AudioVisualizer";
@@ -31,12 +30,16 @@ import {
   ShareIcon,
   ShuffleIcon,
 } from "../components/ActionIcons";
+import { useTheme } from "../theme/ThemeProvider";
+import type { AppTheme } from "../theme/theme";
 
 type Props = NativeStackScreenProps<LibraryStackParamList, "Player">;
 
 const repository = new MediaRepositorySqlite();
 
 export function PlayerScreen({ route }: Props) {
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const { item, queue } = route.params;
   const { init, controller, state, play, pause, seekTo, setCurrent, setQueue } =
     usePlayerStore();
@@ -614,7 +617,8 @@ export function PlayerScreen({ route }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) =>
+  StyleSheet.create({
   container: {
     flex: 1,
     paddingTop: theme.spacing.md,
@@ -891,6 +895,6 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     fontFamily: theme.fonts.body,
   },
-});
+  });
 
 

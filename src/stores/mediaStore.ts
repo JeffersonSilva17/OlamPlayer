@@ -1,4 +1,5 @@
 import { Alert, Platform } from "react-native";
+import RNFS from "react-native-fs";
 import { isErrorWithCode, errorCodes } from "@react-native-documents/picker";
 import { create } from "zustand";
 import type { MediaItem, MediaType } from "../models/media";
@@ -60,6 +61,13 @@ function askDuplicateDecision(count: number): Promise<DuplicateDecision> {
   });
 }
 
+function getFilePathFromUri(uri: string): string | null {
+  if (!uri) return null;
+  if (uri.startsWith("file://")) return uri.replace("file://", "");
+  if (uri.startsWith("/")) return uri;
+  return null;
+}
+
 export const useMediaStore = create<MediaStoreState>((set, get) => ({
   items: { audio: [], video: [] },
   query: "",
@@ -77,8 +85,29 @@ export const useMediaStore = create<MediaStoreState>((set, get) => ({
         sort: get().sort,
         order: get().order,
       });
+      const missingIds: string[] = [];
+      const normalizedItems = await Promise.all(
+        items.map(async (item) => {
+          if (!item.isAvailable) return item;
+          const path = getFilePathFromUri(item.uri);
+          if (!path) return item;
+          try {
+            const exists = await RNFS.exists(path);
+            if (!exists) {
+              missingIds.push(item.id);
+              return { ...item, isAvailable: false };
+            }
+          } catch (error) {
+            return item;
+          }
+          return item;
+        }),
+      );
+      if (missingIds.length > 0) {
+        await Promise.all(missingIds.map((id) => mediaRepository.markUnavailable(id)));
+      }
       set((state) => ({
-        items: { ...state.items, [mediaType]: items },
+        items: { ...state.items, [mediaType]: normalizedItems },
       }));
     } catch (error) {
       console.warn("Falha ao carregar midias", error);

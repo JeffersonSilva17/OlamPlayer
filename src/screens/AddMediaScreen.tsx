@@ -1,10 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Platform, View, Text, Pressable, TextInput, StyleSheet, Alert } from "react-native";
 import { useMediaStore } from "../stores/mediaStore";
-import { theme } from "../theme/theme";
 import { ScreenBackdrop } from "../components/ScreenBackdrop";
+import { useTheme } from "../theme/ThemeProvider";
+import type { AppTheme } from "../theme/theme";
 
 export function AddMediaScreen() {
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const {
     addFiles,
     addFolder,
@@ -82,7 +85,8 @@ export function AddMediaScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) =>
+  StyleSheet.create({
   container: {
     flex: 1,
     padding: theme.spacing.md,
@@ -163,4 +167,4 @@ const styles = StyleSheet.create({
     color: theme.colors.danger,
     fontFamily: theme.fonts.body,
   },
-});
+  });

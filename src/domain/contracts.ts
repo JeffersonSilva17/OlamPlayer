@@ -98,4 +98,6 @@ export interface SettingsRepository {
   setAutoPlayMinMs(valueMs: number): Promise<void>;
   getAutoPlayMaxMs(): Promise<number>;
   setAutoPlayMaxMs(valueMs: number): Promise<void>;
+  getThemeMode(): Promise<"dark" | "light">;
+  setThemeMode(mode: "dark" | "light"): Promise<void>;
 }

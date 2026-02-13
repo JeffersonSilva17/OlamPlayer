@@ -6,15 +6,18 @@ import { usePlaylistStore } from "../stores/playlistStore";
 import { MediaRepositorySqlite } from "../data/repositories/MediaRepositorySqlite";
 import type { MediaItem } from "../models/media";
 import { useNavigation } from "@react-navigation/native";
-import { theme } from "../theme/theme";
 import { ScreenBackdrop } from "../components/ScreenBackdrop";
 import { icons } from "../theme/icons";
 import { ShuffleIcon } from "../components/ActionIcons";
+import { useTheme } from "../theme/ThemeProvider";
+import type { AppTheme } from "../theme/theme";
 
 type Props = NativeStackScreenProps<PlaylistsStackParamList, "PlaylistDetail">;
 const mediaRepository = new MediaRepositorySqlite();
 
 export function PlaylistDetailScreen({ route }: Props) {
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const navigation = useNavigation();
   const { playlistId, playlistName, mediaType } = route.params;
   const {
@@ -187,7 +190,8 @@ export function PlaylistDetailScreen({ route }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) =>
+  StyleSheet.create({
   container: {
     flex: 1,
     padding: theme.spacing.md,
@@ -321,7 +325,7 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     fontFamily: theme.fonts.body,
   },
-});
+  });
 
 function normalizeSearchText(value: string): string {
   return value

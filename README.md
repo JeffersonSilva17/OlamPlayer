@@ -47,6 +47,11 @@ Android:
 npm run android
 ```
 
+Android (USB fisico, com reverse automatico):
+```bash
+npm run android:usb
+```
+
 iOS:
 ```bash
 npm run ios
@@ -56,6 +61,11 @@ Device fisico (Android):
 ```bash
 adb reverse tcp:8081 tcp:8081
 npm run start
+```
+
+Atalho para USB (reverse + Metro):
+```bash
+npm run start:usb
 ```
 
 ## Fluxos de teste (manual)
@@ -149,17 +159,27 @@ Observacao: validacao manual no Android concluida em 8 fev 2026. iOS ainda pende
 
 ## Scripts
 - `npm run start` -- Metro
+- `npm run start:usb` -- Metro + `adb reverse`
 - `npm run android` -- build/run Android
+- `npm run android:usb` -- `adb reverse` + build/run Android
 - `npm run ios` -- build/run iOS
+- `npm run build:apk:release` -- gera APK release
+- `npm run build:aab:release` -- gera AAB release
+- `npm run install:apk:release` -- instala APK release no device conectado
 
 ## Build de release (Android)
 1. Configure o keystore e a assinatura (Gradle).
-2. Gere o bundle:
+2. Gere o APK:
 ```bash
-cd android
-gradlew bundleRelease
+npm run build:apk:release
 ```
-3. O arquivo AAB fica em `android/app/build/outputs/bundle/release/`.
+3. APK de saida:
+- `android/app/build/outputs/apk/release/app-release.apk`
+4. Opcional para Play Store (AAB):
+```bash
+npm run build:aab:release
+```
+- Saida: `android/app/build/outputs/bundle/release/app-release.aab`
 
 ## Build de release (iOS)
 - Requer macOS + Xcode.

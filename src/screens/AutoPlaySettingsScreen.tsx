@@ -2,8 +2,9 @@ import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, Pressable, StyleSheet, Switch, TextInput } from "react-native";
 import Slider from "@react-native-community/slider";
 import { useSettingsStore } from "../stores/settingsStore";
-import { theme } from "../theme/theme";
 import { ScreenBackdrop } from "../components/ScreenBackdrop";
+import { useTheme } from "../theme/ThemeProvider";
+import type { AppTheme } from "../theme/theme";
 
 const MAX_MINUTES = 600;
 
@@ -21,6 +22,8 @@ function formatMinutes(value: number): string {
 }
 
 export function AutoPlaySettingsScreen() {
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const {
     autoPlayEnabled,
     autoPlayMinMs,
@@ -192,7 +195,8 @@ export function AutoPlaySettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) =>
+  StyleSheet.create({
   container: {
     flex: 1,
     padding: theme.spacing.md,
@@ -293,4 +297,4 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: theme.fonts.body,
   },
-});
+  });

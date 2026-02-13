@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -15,10 +15,11 @@ import { usePlayerStore } from "../stores/playerStore";
 import { useNavigation } from "@react-navigation/native";
 import { MediaRepositorySqlite } from "../data/repositories/MediaRepositorySqlite";
 import type { MediaItem } from "../models/media";
-import { theme } from "../theme/theme";
 import { icons } from "../theme/icons";
 import { ShareIcon } from "./ActionIcons";
 import { reactNativeShareAdapter } from "../infra/share/ReactNativeShareAdapter";
+import { useTheme } from "../theme/ThemeProvider";
+import type { AppTheme } from "../theme/theme";
 
 type TrackInfo = {
   title?: string;
@@ -28,6 +29,8 @@ type TrackInfo = {
 export function MiniPlayer() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const { state, play, pause, current, queueLabel } = usePlayerStore();
   const [track, setTrack] = useState<TrackInfo | null>(null);
   const [showQueue, setShowQueue] = useState(false);
@@ -253,127 +256,128 @@ export function MiniPlayer() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 54,
-    backgroundColor: theme.colors.surface,
-    borderTopWidth: 1,
-    borderColor: theme.colors.border,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: theme.spacing.sm,
-    ...theme.shadow.card,
-  },
-  sideButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: theme.colors.brand,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  sideText: {
-    color: theme.colors.bg,
-    fontSize: 16,
-    fontWeight: "800",
-    fontFamily: theme.fonts.body,
-  },
-  info: {
-    flex: 1,
-    paddingRight: theme.spacing.sm,
-  },
-  title: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: theme.colors.text,
-    fontFamily: theme.fonts.heading,
-  },
-  controls: {
-    flexDirection: "row",
-    gap: 6,
-    marginLeft: theme.spacing.xs,
-    marginRight: theme.spacing.xs,
-  },
-  controlButton: {
-    backgroundColor: theme.colors.brand,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  controlText: {
-    color: theme.colors.bg,
-    fontSize: 16,
-    fontWeight: "800",
-    fontFamily: theme.fonts.body,
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    justifyContent: "flex-start",
-  },
-  modalSheet: {
-    backgroundColor: theme.colors.surface,
-    padding: theme.spacing.md,
-    height: Dimensions.get("window").height,
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
-    paddingTop: theme.spacing.lg,
-  },
-  modalHandle: {
-    width: 48,
-    height: 5,
-    borderRadius: 3,
-    alignSelf: "center",
-    backgroundColor: theme.colors.border,
-    marginBottom: theme.spacing.sm,
-  },
-  modalTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    marginBottom: theme.spacing.sm,
-    color: theme.colors.text,
-    fontFamily: theme.fonts.heading,
-  },
-  modalList: {
-    paddingBottom: theme.spacing.lg,
-  },
-  modalRow: {
-    paddingVertical: 8,
-  },
-  modalRowCard: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radius.lg,
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: theme.spacing.sm,
-    marginBottom: theme.spacing.sm,
-    backgroundColor: theme.colors.surfaceAlt,
-  },
-  modalRowText: {
-    fontSize: 14,
-    color: theme.colors.text,
-    fontFamily: theme.fonts.body,
-  },
-  modalRowActive: {
-    color: theme.colors.brand,
-    fontWeight: "700",
-  },
-  modalClose: {
-    marginTop: theme.spacing.sm,
-    paddingVertical: 10,
-    borderRadius: theme.radius.md,
-    backgroundColor: theme.colors.brand,
-    alignItems: "center",
-  },
-  modalCloseText: {
-    color: theme.colors.surface,
-    fontWeight: "600",
-    fontFamily: theme.fonts.body,
-  },
-});
+const createStyles = (theme: AppTheme) =>
+  StyleSheet.create({
+    container: {
+      position: "absolute",
+      left: 0,
+      right: 0,
+      bottom: 0,
+      height: 54,
+      backgroundColor: theme.colors.surface,
+      borderTopWidth: 1,
+      borderColor: theme.colors.border,
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: theme.spacing.sm,
+      ...theme.shadow.card,
+    },
+    sideButton: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      backgroundColor: theme.colors.brand,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    sideText: {
+      color: theme.colors.bg,
+      fontSize: 16,
+      fontWeight: "800",
+      fontFamily: theme.fonts.body,
+    },
+    info: {
+      flex: 1,
+      paddingRight: theme.spacing.sm,
+    },
+    title: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: theme.colors.text,
+      fontFamily: theme.fonts.heading,
+    },
+    controls: {
+      flexDirection: "row",
+      gap: 6,
+      marginLeft: theme.spacing.xs,
+      marginRight: theme.spacing.xs,
+    },
+    controlButton: {
+      backgroundColor: theme.colors.brand,
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    controlText: {
+      color: theme.colors.bg,
+      fontSize: 16,
+      fontWeight: "800",
+      fontFamily: theme.fonts.body,
+    },
+    modalBackdrop: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.4)",
+      justifyContent: "flex-start",
+    },
+    modalSheet: {
+      backgroundColor: theme.colors.surface,
+      padding: theme.spacing.md,
+      height: Dimensions.get("window").height,
+      borderTopLeftRadius: 0,
+      borderTopRightRadius: 0,
+      paddingTop: theme.spacing.lg,
+    },
+    modalHandle: {
+      width: 48,
+      height: 5,
+      borderRadius: 3,
+      alignSelf: "center",
+      backgroundColor: theme.colors.border,
+      marginBottom: theme.spacing.sm,
+    },
+    modalTitle: {
+      fontSize: 16,
+      fontWeight: "700",
+      marginBottom: theme.spacing.sm,
+      color: theme.colors.text,
+      fontFamily: theme.fonts.heading,
+    },
+    modalList: {
+      paddingBottom: theme.spacing.lg,
+    },
+    modalRow: {
+      paddingVertical: 8,
+    },
+    modalRowCard: {
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      borderRadius: theme.radius.lg,
+      paddingHorizontal: theme.spacing.sm,
+      paddingVertical: theme.spacing.sm,
+      marginBottom: theme.spacing.sm,
+      backgroundColor: theme.colors.surfaceAlt,
+    },
+    modalRowText: {
+      fontSize: 14,
+      color: theme.colors.text,
+      fontFamily: theme.fonts.body,
+    },
+    modalRowActive: {
+      color: theme.colors.brand,
+      fontWeight: "700",
+    },
+    modalClose: {
+      marginTop: theme.spacing.sm,
+      paddingVertical: 10,
+      borderRadius: theme.radius.md,
+      backgroundColor: theme.colors.brand,
+      alignItems: "center",
+    },
+    modalCloseText: {
+      color: theme.colors.surface,
+      fontWeight: "600",
+      fontFamily: theme.fonts.body,
+    },
+  });

@@ -6,9 +6,11 @@ const AUTO_PLAY_ENABLED_KEY = "auto_play_enabled";
 const AUTO_PLAY_RULE_KEY = "auto_play_rule";
 const AUTO_PLAY_MIN_MS_KEY = "auto_play_min_ms";
 const AUTO_PLAY_MAX_MS_KEY = "auto_play_max_ms";
+const THEME_MODE_KEY = "theme_mode";
 const DEFAULT_AUTO_PLAY_ENABLED = true;
 const DEFAULT_AUTO_PLAY_MIN_MS = 0;
 const DEFAULT_AUTO_PLAY_MAX_MS = 8 * 60 * 1000;
+const DEFAULT_THEME_MODE = "dark";
 const MAX_RANGE_MS = 10 * 60 * 60 * 1000;
 
 export class SettingsRepositorySqlite implements SettingsRepository {
@@ -135,5 +137,16 @@ export class SettingsRepositorySqlite implements SettingsRepository {
   async setAutoPlayMaxMs(valueMs: number): Promise<void> {
     const maxMs = this.clampRange(valueMs);
     await this.setSetting(AUTO_PLAY_MAX_MS_KEY, String(maxMs));
+  }
+
+  async getThemeMode(): Promise<"dark" | "light"> {
+    const value = await this.getSetting(THEME_MODE_KEY);
+    if (value === "light") return "light";
+    if (value === "dark") return "dark";
+    return DEFAULT_THEME_MODE;
+  }
+
+  async setThemeMode(mode: "dark" | "light"): Promise<void> {
+    await this.setSetting(THEME_MODE_KEY, mode);
   }
 }

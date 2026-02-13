@@ -20,7 +20,6 @@ import { usePlaylistStore } from "../stores/playlistStore";
 import { useSettingsStore } from "../stores/settingsStore";
 import { reactNativeShareAdapter } from "../infra/share/ReactNativeShareAdapter";
 import { MediaList } from "../components/MediaList";
-import { theme } from "../theme/theme";
 import { ScreenBackdrop } from "../components/ScreenBackdrop";
 import { icons } from "../theme/icons";
 import { usePlayerStore } from "../stores/playerStore";
@@ -30,11 +29,15 @@ import { MediaRepositorySqlite } from "../data/repositories/MediaRepositorySqlit
 import { updateMediaDuration } from "../domain/playerUseCases";
 import { StackedNoteIcon } from "../components/StackedNoteIcon";
 import { ShareIcon } from "../components/ActionIcons";
+import { useTheme } from "../theme/ThemeProvider";
+import type { AppTheme } from "../theme/theme";
 
 type Navigation = NativeStackNavigationProp<LibraryStackParamList, "Library">;
 type Props = NativeStackScreenProps<LibraryStackParamList, "Library">;
 
 export function LibraryScreen({ route }: Props) {
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const navigation = useNavigation<Navigation>();
   const isFocused = useIsFocused();
   const forcedType = route.params?.mediaType;
@@ -601,7 +604,8 @@ export function LibraryScreen({ route }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) =>
+  StyleSheet.create({
   container: {
     flex: 1,
     padding: theme.spacing.md,
@@ -897,6 +901,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     color: theme.colors.text,
   },
-});
+  });
 
 

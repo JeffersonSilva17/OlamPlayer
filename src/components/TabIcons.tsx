@@ -1,12 +1,13 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { theme } from "../theme/theme";
+import { useTheme } from "../theme/ThemeProvider";
 
 type Props = {
   focused?: boolean;
 };
 
 export function VideoTabIcon({ focused = false }: Props) {
+  const theme = useTheme();
   const color = focused ? theme.colors.accent : theme.colors.textMuted;
   return (
     <View style={styles.videoWrap}>
@@ -25,6 +26,7 @@ export function VideoTabIcon({ focused = false }: Props) {
 }
 
 export function AudioTabIcon({ focused = false }: Props) {
+  const theme = useTheme();
   const color = focused ? theme.colors.accent : theme.colors.textMuted;
   return (
     <View style={styles.audioWrap}>
@@ -36,6 +38,7 @@ export function AudioTabIcon({ focused = false }: Props) {
 }
 
 export function PlaylistTabIcon({ focused = false }: Props) {
+  const theme = useTheme();
   const color = focused ? theme.colors.accent : theme.colors.textMuted;
   return (
     <View style={styles.playlistWrap}>

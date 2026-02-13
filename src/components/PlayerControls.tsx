@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import Slider from "@react-native-community/slider";
-import { theme } from "../theme/theme";
 import { icons } from "../theme/icons";
+import { useTheme } from "../theme/ThemeProvider";
+import type { AppTheme } from "../theme/theme";
 
 type Props = {
   isPlaying: boolean;
@@ -37,6 +38,8 @@ export function PlayerControls({
   canNext = true,
   showControls = true,
 }: Props) {
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const showSkip = Boolean(onPrev || onNext);
   return (
     <View style={styles.container}>
@@ -83,52 +86,53 @@ export function PlayerControls({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    padding: theme.spacing.md,
-  },
-  slider: {
-    width: "100%",
-    height: 40,
-  },
-  timeRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: theme.spacing.xs,
-  },
-  controlsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: theme.spacing.sm,
-    marginTop: theme.spacing.sm,
-  },
-  time: {
-    fontSize: 12,
-    color: theme.colors.textMuted,
-    fontFamily: theme.fonts.body,
-  },
-  button: {
-    backgroundColor: theme.colors.brand,
-    paddingVertical: 10,
-    borderRadius: theme.radius.lg,
-    alignItems: "center",
-    flex: 1,
-  },
-  smallButton: {
-    backgroundColor: theme.colors.brand,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderRadius: theme.radius.lg,
-  },
-  iconText: {
-    color: theme.colors.bg,
-    fontSize: 22,
-    fontWeight: "800",
-    fontFamily: theme.fonts.heading,
-    letterSpacing: 0.4,
-  },
-  buttonDisabled: {
-    backgroundColor: "#9FB0C4",
-  },
-});
+const createStyles = (theme: AppTheme) =>
+  StyleSheet.create({
+    container: {
+      padding: theme.spacing.md,
+    },
+    slider: {
+      width: "100%",
+      height: 40,
+    },
+    timeRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      marginTop: theme.spacing.xs,
+    },
+    controlsRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: theme.spacing.sm,
+      marginTop: theme.spacing.sm,
+    },
+    time: {
+      fontSize: 12,
+      color: theme.colors.textMuted,
+      fontFamily: theme.fonts.body,
+    },
+    button: {
+      backgroundColor: theme.colors.brand,
+      paddingVertical: 10,
+      borderRadius: theme.radius.lg,
+      alignItems: "center",
+      flex: 1,
+    },
+    smallButton: {
+      backgroundColor: theme.colors.brand,
+      paddingVertical: 8,
+      paddingHorizontal: 10,
+      borderRadius: theme.radius.lg,
+    },
+    iconText: {
+      color: theme.colors.bg,
+      fontSize: 22,
+      fontWeight: "800",
+      fontFamily: theme.fonts.heading,
+      letterSpacing: 0.4,
+    },
+    buttonDisabled: {
+      backgroundColor: "#9FB0C4",
+    },
+  });

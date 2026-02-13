@@ -1,10 +1,11 @@
-import React from "react";
-import { View, Text, StyleSheet, Pressable } from "react-native";
+import React, { useMemo } from "react";
+import { View, Text, StyleSheet, Pressable, Alert } from "react-native";
 import type { MediaItem } from "../models/media";
-import { theme } from "../theme/theme";
 import { icons } from "../theme/icons";
 import { MiniEqualizer } from "./MiniEqualizer";
 import { MarqueeText } from "./MarqueeText";
+import { useTheme } from "../theme/ThemeProvider";
+import type { AppTheme } from "../theme/theme";
 
 type Props = {
   item: MediaItem;
@@ -41,6 +42,9 @@ export function MediaCard({
   isScrolling = false,
   compact = false,
 }: Props) {
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const isUnavailable = !item.isAvailable;
   const highlightParts = buildHighlightParts(item.displayName, query);
   const titleParts = highlightParts.map((part, index) => (
     <Text
@@ -62,6 +66,20 @@ export function MediaCard({
           onToggleSelect?.(item);
           return;
         }
+        if (isUnavailable) {
+          Alert.alert(
+            "Arquivo indisponível",
+            "Deseja reimportar este arquivo?",
+            [
+              { text: "Cancelar", style: "cancel" },
+              {
+                text: "Reimportar",
+                onPress: () => onReimport?.(item),
+              },
+            ],
+          );
+          return;
+        }
         onPlay(item);
       }}
       onLongPress={() => onLongPressSelect?.(item)}
@@ -78,79 +96,121 @@ export function MediaCard({
           <MarqueeText
             active
             text={item.displayName}
-            textStyle={styles.title}
+            textStyle={[styles.title, isUnavailable && styles.titleUnavailable]}
           >
             {titleParts}
           </MarqueeText>
         </View>
+        {isUnavailable ? (
+          <View style={styles.unavailableRow}>
+            <Text style={styles.unavailableText}>Indisponível</Text>
+            {onReimport ? (
+              <Pressable
+                style={styles.reimportButton}
+                onPress={() => onReimport(item)}
+              >
+                <Text style={styles.reimportText}>Reimportar</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
       </View>
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    padding: 12,
-    borderRadius: theme.radius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    marginBottom: 12,
-    backgroundColor: theme.colors.surface,
-    ...theme.shadow.card,
-  },
-  cardCompact: {
-    marginBottom: 0,
-    paddingVertical: 8,
-    paddingHorizontal: 0,
-    backgroundColor: "transparent",
-    borderWidth: 0,
-    borderColor: "transparent",
-    borderRadius: 0,
-    shadowOpacity: 0,
-    shadowRadius: 0,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 0,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-  },
-  cardSelected: {
-    borderColor: theme.colors.brand,
-    backgroundColor: theme.colors.surfaceAlt,
-  },
-  info: {
-    marginBottom: 0,
-  },
-  titleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  trebleBadge: {
-    width: 26,
-    height: 26,
-    borderRadius: 6,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: theme.colors.surfaceAlt,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  trebleIcon: {
-    color: theme.colors.accent,
-    fontSize: 14,
-    fontWeight: "700",
-    fontFamily: theme.fonts.body,
-  },
-  title: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: theme.colors.text,
-    fontFamily: theme.fonts.heading,
-  },
-  titleHighlight: {
-    backgroundColor: theme.colors.highlight,
-  },
-});
+const createStyles = (theme: AppTheme) =>
+  StyleSheet.create({
+    card: {
+      padding: 12,
+      borderRadius: theme.radius.md,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      marginBottom: 12,
+      backgroundColor: theme.colors.surface,
+      ...theme.shadow.card,
+    },
+    cardCompact: {
+      marginBottom: 0,
+      paddingVertical: 8,
+      paddingHorizontal: 0,
+      backgroundColor: "transparent",
+      borderWidth: 0,
+      borderColor: "transparent",
+      borderRadius: 0,
+      shadowOpacity: 0,
+      shadowRadius: 0,
+      shadowOffset: { width: 0, height: 0 },
+      elevation: 0,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+    },
+    cardSelected: {
+      borderColor: theme.colors.brand,
+      backgroundColor: theme.colors.surfaceAlt,
+    },
+    info: {
+      marginBottom: 0,
+    },
+    titleRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+    },
+    trebleBadge: {
+      width: 26,
+      height: 26,
+      borderRadius: 6,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: theme.colors.surfaceAlt,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    trebleIcon: {
+      color: theme.colors.accent,
+      fontSize: 14,
+      fontWeight: "700",
+      fontFamily: theme.fonts.body,
+    },
+    title: {
+      fontSize: 15,
+      fontWeight: "600",
+      color: theme.colors.text,
+      fontFamily: theme.fonts.heading,
+    },
+    titleUnavailable: {
+      color: theme.colors.textMuted,
+    },
+    titleHighlight: {
+      backgroundColor: theme.colors.highlight,
+    },
+    unavailableRow: {
+      marginTop: 6,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: theme.spacing.sm,
+    },
+    unavailableText: {
+      color: theme.colors.danger,
+      fontSize: 12,
+      fontFamily: theme.fonts.body,
+      fontWeight: "600",
+    },
+    reimportButton: {
+      paddingVertical: 4,
+      paddingHorizontal: 10,
+      borderRadius: theme.radius.md,
+      borderWidth: 1,
+      borderColor: theme.colors.brand,
+    },
+    reimportText: {
+      color: theme.colors.brand,
+      fontSize: 12,
+      fontWeight: "700",
+      fontFamily: theme.fonts.body,
+    },
+  });
 
 function normalizeSearchText(value: string): string {
   return value
