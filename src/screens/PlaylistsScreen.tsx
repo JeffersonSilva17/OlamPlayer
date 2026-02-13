@@ -146,6 +146,7 @@ const createStyles = (theme: AppTheme) =>
     marginBottom: theme.spacing.sm,
     color: theme.colors.text,
     fontFamily: theme.fonts.heading,
+    textAlign: "center",
   },
   tabs: {
     flexDirection: "row",

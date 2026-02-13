@@ -98,6 +98,7 @@ const createStyles = (theme: AppTheme) =>
     marginBottom: theme.spacing.sm,
     color: theme.colors.text,
     fontFamily: theme.fonts.heading,
+    textAlign: "center",
   },
   button: {
     backgroundColor: theme.colors.brand,
