@@ -82,7 +82,7 @@ export class TrackPlayerController implements PlayerController {
       id: uri,
       url: uri,
       title,
-      artist: "OlamPlayer",
+      artist: "LinkFlow",
     });
     this.emit();
   }

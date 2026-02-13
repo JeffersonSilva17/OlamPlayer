@@ -11,7 +11,7 @@ export async function playQueue(items: MediaItem[], label?: string): Promise<voi
       id: item.id,
       url: item.uri,
       title: item.displayName,
-      artist: "OlamPlayer",
+      artist: "LinkFlow",
       album: label ?? "Biblioteca",
     })),
   );

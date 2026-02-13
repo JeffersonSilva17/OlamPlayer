@@ -124,7 +124,7 @@ function AppShell() {
       >
         <View style={styles.container}>
           <SafeAreaView edges={["top"]} style={styles.appHeader}>
-            <Text style={styles.appHeaderText}>OlamPlayer</Text>
+            <Text style={styles.appHeaderText}>LinkFlow</Text>
           </SafeAreaView>
           <Tab.Navigator
             screenOptions={{

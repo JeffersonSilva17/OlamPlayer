@@ -157,6 +157,39 @@ Observacao: validacao manual no Android concluida em 8 fev 2026. iOS ainda pende
 - [ ] Player audio/video
 - [ ] Share no WhatsApp
 
+## Release Candidate (1.0.0-rc.1)
+- Data de fechamento do checklist: **13 fev 2026**
+- Versao candidata configurada:
+  - `package.json` -> `1.0.0-rc.1`
+  - `android/app/build.gradle` -> `versionName "1.0.0-rc.1"` / `versionCode 2`
+- Status Android: `READY FOR RC`
+- Status iOS: `BLOCKED` (sem validacao em macOS/Xcode)
+- Decisao de gate:
+  - `GO` para distribuicao Android interna (APK/AAB de teste).
+  - `NO-GO` para publicacao conjunta Android + iOS ate concluir checklist iOS.
+
+### Checklist final de release (fechado)
+- [x] Build Android debug validado em device fisico
+- [x] Build Android release (APK) gerado
+- [x] Fluxo principal sem crash no Android (adicionar, biblioteca, player, share, playlists)
+- [x] Tratamento de indisponivel + reimportar
+- [x] Versao candidata (RC) definida em codigo e README
+- [ ] Build Android AAB assinado com chave de producao (Play Console)
+- [ ] Validacao iOS completa (Files/Open In/Player/Share)
+- [ ] Privacy Policy + assets de loja + texto final de listing
+
+### Preparacao da versao candidata (Git)
+```bash
+git tag -a v1.0.0-rc.1 -m "OlamPlayer MVP Release Candidate 1"
+git push origin v1.0.0-rc.1
+```
+
+### Publicacao Android (quando chave de producao estiver pronta)
+```bash
+npm run build:aab:release
+```
+- Saida: `android/app/build/outputs/bundle/release/app-release.aab`
+
 ## Scripts
 - `npm run start` -- Metro
 - `npm run start:usb` -- Metro + `adb reverse`
