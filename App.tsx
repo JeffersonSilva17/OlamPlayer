@@ -211,6 +211,7 @@ const createStyles = (theme: AppTheme) =>
       borderBottomColor: theme.colors.border,
       paddingHorizontal: theme.spacing.lg,
       paddingVertical: theme.spacing.md,
+      alignItems: "center",
     },
     appHeaderText: {
       fontSize: 18,
@@ -218,6 +219,8 @@ const createStyles = (theme: AppTheme) =>
       color: theme.colors.text,
       fontFamily: theme.fonts.heading,
       letterSpacing: 0.4,
+      textAlign: "center",
+      width: "100%",
     },
     tabIcon: {
       fontSize: 18,
